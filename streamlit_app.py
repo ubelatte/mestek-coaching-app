@@ -12,6 +12,7 @@ from io import BytesIO
 import smtplib
 from email.message import EmailMessage
 import datetime
+import json
 
 # === PASSWORD GATE ===
 st.title("🔐 Secure Access")
@@ -23,7 +24,8 @@ st.success("Access granted!")
 
 # === SETUP ===
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-service_account_info = st.secrets["gcp_service_account"]
+with open("service_account.json") as f:
+    service_account_info = json.load(f)
 creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
 client = gspread.authorize(creds)
 SHEET_NAME = "Coaching Assessment Form"
