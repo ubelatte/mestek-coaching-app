@@ -12,7 +12,6 @@ from io import BytesIO
 import smtplib
 from email.message import EmailMessage
 import datetime
-import json
 
 # === PASSWORD GATE ===
 st.title("🔐 Secure Access")
@@ -24,13 +23,13 @@ st.success("Access granted!")
 
 # === SETUP ===
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-with open("service_account.json") as f:
-    service_account_info = json.load(f)
+service_account_info = st.secrets["gcp_service_account"]
 creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
 client = gspread.authorize(creds)
 SHEET_NAME = "Coaching Assessment Form"
 sheet = client.open(SHEET_NAME).sheet1
 openai.api_key = st.secrets["openai_api_key"]
+client_ai = openai.OpenAI()
 SENDER_EMAIL = st.secrets["sender_email"]
 SENDER_PASSWORD = st.secrets["sender_password"]
 
@@ -67,13 +66,13 @@ Respond in this format:
 Rating: x/5
 Explanation: your summary here.
 """
-    response = openai.ChatCompletion.create(
+    response = client_ai.chat.completions.create(
         model="gpt-3.5-turbo",
-        temperature=0.3,
         messages=[
             {"role": "system", "content": "You are a performance coach generating professional ratings and summaries."},
             {"role": "user", "content": prompt}
-        ]
+        ],
+        temperature=0.3
     )
     return response.choices[0].message.content.strip()
 
