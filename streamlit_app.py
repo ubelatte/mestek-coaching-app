@@ -61,6 +61,7 @@ if 'responses' not in st.session_state:
 
 
 def analyze_feedback(category, response):
+    print(f"Category: {category}, Response: {response}")  # Log values for debugging
     prompt = f"""
     Evaluate the following feedback for the category "{category}". Provide:
     1. A rating from 1 to 5 (1 = Poor, 5 = Excellent)
@@ -73,14 +74,14 @@ def analyze_feedback(category, response):
     Rating: x/5
     Explanation: your summary here.
     """
-    # Interact with OpenAI API (Updated for version 1.x)
-    completion = openai.Completion.create(
-        model="gpt-3.5-turbo",  # You can use "gpt-3.5-turbo" or other available models
-        prompt=prompt,
-        temperature=0.3,  # Adjust the temperature if needed
+    completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "system", "content": "You are a performance coach generating professional ratings and summaries."},
+                  {"role": "user", "content": prompt}],
+        temperature=0.3,
         max_tokens=150
     )
-    return completion.choices[0].text.strip()
+    return completion.choices[0].message['content'].strip()
 
 
 def create_report(employee_name, supervisor_name, review_date, department, responses, ai_feedbacks):
