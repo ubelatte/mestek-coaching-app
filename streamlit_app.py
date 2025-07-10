@@ -1,7 +1,6 @@
 import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
-from google.auth.transport.requests import Request  # Import the Request class
 import openai
 from docx import Document
 from docx.shared import Pt, Inches
@@ -26,10 +25,6 @@ st.success("Access granted!")
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 service_account_info = st.secrets["gcp_service_account"]
 creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
-
-# Force a refresh of the credentials to ensure they're up to date
-creds.refresh(Request())
-
 client = gspread.authorize(creds)
 SHEET_NAME = "Automated Supervisor Report"
 sheet = client.open(SHEET_NAME).sheet1
