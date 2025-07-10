@@ -30,7 +30,7 @@ SHEET_NAME = "Coaching Assessment Form"
 sheet = client.open(SHEET_NAME).sheet1
 
 # Correct OpenAI key loading per your secrets.toml layout
-openai.api_key = st.secrets["openai_api_key"]["openai_api_key"]
+openai.api_key = st.secrets["openai"]["api_key"]
 
 # Email credentials
 SENDER_EMAIL = st.secrets["sender_email"]["sender_email"]
