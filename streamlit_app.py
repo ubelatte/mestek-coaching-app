@@ -55,10 +55,13 @@ prompts = [
     "How effectively does this employee use technical documentation and operate equipment according to established procedures? Please describe how they access and apply information (e.g., blueprints, work orders), and how confidently they handle equipment and tools in their role."
 ]
 
-# === AI ANALYSIS ===
+from openai import OpenAI
+
+client = OpenAI(api_key=st.secrets["openai_api_key"])
+
 def analyze_feedback(category, response):
     prompt = f"""
-Evaluate the following feedback for the category "{category}". Provide:
+Evaluate the following feedback for the category \"{category}\". Provide:
 1. A rating from 1 to 5 (1 = Poor, 5 = Excellent)
 2. A brief 1–2 sentence explanation
 
@@ -69,14 +72,16 @@ Respond in this format:
 Rating: x/5
 Explanation: your summary here.
 """
-    completion = openai.ChatCompletion.create(
+
+    completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "You are a performance coach generating professional ratings and summaries."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.3,
+        temperature=0.3
     )
+
     return completion.choices[0].message.content.strip()
 
 # === DOCX GENERATION ===
