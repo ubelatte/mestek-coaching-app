@@ -59,7 +59,6 @@ prompts = [
 if 'responses' not in st.session_state:
     st.session_state.responses = [""] * len(prompts)
 
-import openai
 
 def analyze_feedback(category, response):
     prompt = f"""
@@ -82,6 +81,7 @@ def analyze_feedback(category, response):
         temperature=0.3  # Adjust the temperature if needed
     )
     return completion.choices[0].text.strip()
+
 
 # Form handling
 with st.form("coaching_form"):
