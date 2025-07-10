@@ -59,6 +59,28 @@ prompts = [
 if 'responses' not in st.session_state:
     st.session_state.responses = [""] * len(prompts)
 
+def analyze_feedback(category, response):
+    prompt = f"""
+    Evaluate the following feedback for the category "{category}". Provide:
+    1. A rating from 1 to 5 (1 = Poor, 5 = Excellent)
+    2. A brief 1–2 sentence explanation
+
+    Feedback:
+    {response}
+
+    Respond in this format:
+    Rating: x/5
+    Explanation: your summary here.
+    """
+    # Interact with OpenAI API
+    completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "system", "content": "You are a performance coach generating professional ratings and summaries."},
+                  {"role": "user", "content": prompt}],
+        temperature=0.3
+    )
+    return completion.choices[0].message['content'].strip()
+
 # Form handling
 with st.form("coaching_form"):
     email = st.text_input("Employee Email *")
