@@ -28,10 +28,13 @@ creds = Credentials.from_service_account_info(service_account_info, scopes=scope
 client = gspread.authorize(creds)
 SHEET_NAME = "Coaching Assessment Form"
 sheet = client.open(SHEET_NAME).sheet1
-openai.api_key = st.secrets["openai"]["api_key"]
-client_ai = openai.OpenAI()
-SENDER_EMAIL = st.secrets["email"]["sender"]
-SENDER_PASSWORD = st.secrets["email"]["password"]
+
+# Correct OpenAI key loading per your secrets.toml layout
+openai.api_key = st.secrets["openai_api_key"]
+
+# Email credentials
+SENDER_EMAIL = st.secrets["sender_email"]
+SENDER_PASSWORD = st.secrets["sender_password"]
 
 # === QUESTIONS ===
 categories = [
@@ -55,7 +58,7 @@ prompts = [
 # === AI ANALYSIS ===
 def analyze_feedback(category, response):
     prompt = f"""
-Evaluate the following feedback for the category \"{category}\". Provide:
+Evaluate the following feedback for the category "{category}". Provide:
 1. A rating from 1 to 5 (1 = Poor, 5 = Excellent)
 2. A brief 1–2 sentence explanation
 
@@ -66,18 +69,19 @@ Respond in this format:
 Rating: x/5
 Explanation: your summary here.
 """
-    response = client_ai.chat.completions.create(
+    completion = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "You are a performance coach generating professional ratings and summaries."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.3
+        temperature=0.3,
     )
-    return response.choices[0].message.content.strip()
+    return completion.choices[0].message.content.strip()
 
 # === DOCX GENERATION ===
 def create_report(employee_name, supervisor_name, review_date, department, responses, ai_feedbacks):
+    # ... your existing docx generation code (unchanged) ...
     doc = Document()
     doc.add_heading('MESTEK – Hourly Performance Appraisal', level=1)
     doc.add_heading('Employee Information', level=2)
