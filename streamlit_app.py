@@ -59,6 +59,8 @@ prompts = [
 if 'responses' not in st.session_state:
     st.session_state.responses = [""] * len(prompts)
 
+import openai
+
 def analyze_feedback(category, response):
     prompt = f"""
     Evaluate the following feedback for the category "{category}". Provide:
@@ -72,14 +74,16 @@ def analyze_feedback(category, response):
     Rating: x/5
     Explanation: your summary here.
     """
-    # Interact with OpenAI API
     completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "system", "content": "You are a performance coach generating professional ratings and summaries."},
-                  {"role": "user", "content": prompt}],
+        model="gpt-3.5-turbo",  # You can use gpt-3.5-turbo or any other available model
+        messages=[
+            {"role": "system", "content": "You are a performance coach generating professional ratings and summaries."},
+            {"role": "user", "content": prompt}
+        ],
         temperature=0.3
     )
     return completion.choices[0].message['content'].strip()
+
 
 # Form handling
 with st.form("coaching_form"):
