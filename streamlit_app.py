@@ -74,16 +74,57 @@ def analyze_feedback(category, response):
     Explanation: your summary here.
     """
     # Interact with OpenAI API (Updated for version 1.x)
-    completion = openai.ChatCompletion.create(
+    completion = openai.Completion.create(
         model="gpt-3.5-turbo",  # You can use "gpt-3.5-turbo" or other available models
-        messages=[
-            {"role": "system", "content": "You are a performance coach generating professional ratings and summaries."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3  # Adjust the temperature if needed
+        prompt=prompt,
+        temperature=0.3,  # Adjust the temperature if needed
+        max_tokens=150
     )
-    return completion.choices[0].message['content'].strip()
+    return completion.choices[0].text.strip()
 
+
+def create_report(employee_name, supervisor_name, review_date, department, responses, ai_feedbacks):
+    # Create a new document
+    doc = Document()
+
+    # Add title
+    doc.add_heading(f'Coaching Report for {employee_name}', 0)
+
+    # Add Employee and Supervisor Information
+    doc.add_paragraph(f"Employee: {employee_name}")
+    doc.add_paragraph(f"Supervisor: {supervisor_name}")
+    doc.add_paragraph(f"Date of Review: {review_date}")
+    doc.add_paragraph(f"Department: {department}")
+    
+    # Add the responses and AI feedbacks
+    for category, response, ai_feedback in zip(categories, responses, ai_feedbacks):
+        doc.add_paragraph(f"Category: {category}")
+        doc.add_paragraph(f"Response: {response}")
+        doc.add_paragraph(f"AI Feedback: {ai_feedback}")
+        doc.add_paragraph("---")  # Add a separator
+
+    # Save the document to a BytesIO buffer to send as an attachment
+    doc_buffer = BytesIO()
+    doc.save(doc_buffer)
+    doc_buffer.seek(0)  # Rewind the buffer for sending
+
+    return doc_buffer
+
+
+def send_email(receiver_email, subject, body, attachment, filename):
+    msg = EmailMessage()
+    msg.set_content(body)
+    msg['Subject'] = subject
+    msg['From'] = SENDER_EMAIL
+    msg['To'] = receiver_email
+
+    # Attach the document
+    msg.add_attachment(attachment, maintype='application', subtype='octet-stream', filename=filename)
+
+    # Send the email
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.send_message(msg)
 
 
 # Form handling
