@@ -74,16 +74,14 @@ def analyze_feedback(category, response):
     Rating: x/5
     Explanation: your summary here.
     """
-    completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",  # You can use gpt-3.5-turbo or any other available model
-        messages=[
-            {"role": "system", "content": "You are a performance coach generating professional ratings and summaries."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3
+    # Use the updated OpenAI API
+    completion = openai.Completion.create(
+        model="gpt-3.5-turbo",  # or any other available model
+        prompt=prompt,
+        max_tokens=150,  # Limit the response length
+        temperature=0.3  # Adjust the temperature if needed
     )
-    return completion.choices[0].message['content'].strip()
-
+    return completion.choices[0].text.strip()
 
 # Form handling
 with st.form("coaching_form"):
