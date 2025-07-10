@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "comment-analyzer-463511",
+  "private_key_id": "59bfdbd54ffb27898d7002d937a89b4269cc366b",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCxhTQPwz/f//sm\nz05GED4rQTLSBdL3MXh71/n8fO7SCfAspvAKKLyTYSEaWzxxv3NkVsJzteWK0XD0\n7Ic5TZyNzet4JqDTDprm4k1dmibD/oDE9stt++5Q/gu05MOrqiIFXsryOXlGi/G5\np3MadOcLsNInbvrVuUQv7ugWinX67m58XvKTKXujwdMOHz55NR/NfiGkiU6J3iIy\nMBGFUAEh6IcagIGz5cQn/sB+XgDDcbAQXUsK7gOQa4sA5eVLHAqmWOds7U9bN6NO\n3qeRBH0KpP1sR7wjgYEhNREn5MbYm7yr8798gNWG4vs0qPlS+XQP9sb2c6Xs+n0A\nu0NS7tOlAgMBAAECggEAC/aGjiNhzBYjljd1NmqEzgRsSNQEpgzq6imhWp8Otw/d\nZBzx4zVgk+wBP5XzalT1EUd5fjO9XtADdTX1XOq6iKHeYu/zeZWr4bBRd2Pahe3C\nPsPE7MoEAuhD4LJj708dUNBVC+LMpfDrXtAGhTtokJSfbPHhLIL6MeK/ODmnfrvy\n7J+qQrU3rfssKOolInCQkcth8tt1xUzuUlGpvIhaBRGsaYLVbRNFxFB7o6p05NHF\n03HfgDvIqRAC+hIawz3TmX0B0MdhZVs392Ycx0Wx9XsRp9+s4j4CHC3xA0s9KcPo\nAyKai/S9vjJCOMOeyCLvc08BbO4r/V0n5+TBlP1FdwKBgQDdNA13X9+y3SYnJFPa\n1gtJpw683+moJdNQQsMXh/mC8Vutlx6GevBrOcNWwE92EAjG6db92m5oqULqUCG6\n9NvNZdyLt5WtKoWM+e5zjLGJsLI46UTWOGd7P8b6b4BZ8exvRcAFoyDTbz2ZZiEZ\nac+S3peow1Ryo3uwWJQ09fh8YwKBgQDNcgS+NvD11OennmxLsXCrJg+mt7tZfGAq\nZ0wMq/rKRchwLl0WRKfbqhSUXdv24B6mXOI8fVBXWrNr2eMoM37+uA9s6ECyz/JD\nn8t48XyzWTFywZf/Kqp6nDBCLhMTJJY3dRAu56WGZlyVXWSwBGxcHw6twJuCflJL\nzIt7HoOaVwKBgDL6zB+2+NdAIIrk1G6a5f8TgVIGSNN35DubJ1tE+zwyY+6d5WsY\n6k/MADj+GVIcX+l3+xSGQuvcFo/p59wuknnEABAzP0upgR38e/gldMVG88wp9rNo\nTHEbQcB18h7IorUCXj7uWaJhANFZuEcjG7O9mTZLziqdguQhhgauqZYBAoGBALXy\naaLwU3zUHolDc9OhhQ/+OFRFWeYJkb1cGG0MjqI/JSG83fIPwb14JpuzeFBu8pYR\nosdBkDqc+FPm9xeua6U462hfVJVINt2PEou9CtxnfLSOIYf5iFvoIZEq7vfAKk1Z\nHoj73Itn8kzSFo8Qi8sWMlDNSKxMJaQ9tbXHM3QnAoGBAJDm/9m1RTISZWFQM3R6\nK06oMaCotHX2IxjxLh31ph6k6yePJVSMBvcyc5FYRAId/jPmNcleqy2j4pur3wuv\nfCCNdu43zYNKCFGfRGrEYZiX2dZKh3FqBCDoFvKpWN83S5bXR0AD4m1H++b07SGL\ncUq03bJK83wmoeq4gw99Chx7\n-----END PRIVATE KEY-----\n",
+  "client_email": "builderkeyu@comment-analyzer-463511.iam.gserviceaccount.com",
+  "client_id": "117932597619126587160",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/builderkeyu%40comment-analyzer-463511.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
