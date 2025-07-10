@@ -57,7 +57,7 @@ prompts = [
 
 from openai import OpenAI
 
-client = OpenAI(api_key=st.secrets["openai_api_key"])
+client_ai = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
 def analyze_feedback(category, response):
     prompt = f"""
@@ -72,8 +72,7 @@ Respond in this format:
 Rating: x/5
 Explanation: your summary here.
 """
-
-    completion = client.chat.completions.create(
+    completion = client_ai.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "You are a performance coach generating professional ratings and summaries."},
@@ -81,7 +80,6 @@ Explanation: your summary here.
         ],
         temperature=0.3
     )
-
     return completion.choices[0].message.content.strip()
 
 # === DOCX GENERATION ===
