@@ -28,10 +28,10 @@ creds = Credentials.from_service_account_info(service_account_info, scopes=scope
 client = gspread.authorize(creds)
 SHEET_NAME = "Coaching Assessment Form"
 sheet = client.open(SHEET_NAME).sheet1
-openai.api_key = st.secrets["openai_api_key"]
+openai.api_key = st.secrets["openai"]["api_key"]
 client_ai = openai.OpenAI()
-SENDER_EMAIL = st.secrets["sender_email"]
-SENDER_PASSWORD = st.secrets["sender_password"]
+SENDER_EMAIL = st.secrets["email"]["sender"]
+SENDER_PASSWORD = st.secrets["email"]["password"]
 
 # === QUESTIONS ===
 categories = [
