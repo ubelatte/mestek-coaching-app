@@ -84,7 +84,6 @@ Explanation: your summary here.
 
 # === DOCX GENERATION ===
 def create_report(employee_name, supervisor_name, review_date, department, responses, ai_feedbacks):
-    # ... your existing docx generation code (unchanged) ...
     doc = Document()
     doc.add_heading('MESTEK – Hourly Performance Appraisal', level=1)
     doc.add_heading('Employee Information', level=2)
@@ -104,12 +103,14 @@ def create_report(employee_name, supervisor_name, review_date, department, respo
 
     header = doc.add_heading('Core Performance Categories', level=2)
     header.runs[0].font.size = Pt(10)
-    doc.add_paragraph("1 – Poor | 2 – Needs Improvement | 3 – Meets Expectations | 4 – Exceeds Expectations | 5 – Outstanding")
+    rating_description = doc.add_paragraph("1 – Poor | 2 – Needs Improvement | 3 – Meets Expectations | 4 – Exceeds Expectations | 5 – Outstanding")
+    for run in rating_description.runs:
+        run.font.size = Pt(8)  # Smaller font for rating description
 
     table = doc.add_table(rows=1, cols=3)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     table.autofit = False
-    widths = [Inches(1.5), Inches(0.5), Inches(4.5)]
+    widths = [Inches(1.5), Inches(0.5), Inches(4.5)]  # Adjust widths: smaller middle column
     for i, width in enumerate(widths):
         for cell in table.columns[i].cells:
             cell.width = width
