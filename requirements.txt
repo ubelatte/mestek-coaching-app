@@ -1,4 +1,5 @@
 streamlit
 gspread
-openaipython-docx
+openai
+python-docx
 google-auth
