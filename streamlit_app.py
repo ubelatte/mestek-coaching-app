@@ -55,46 +55,178 @@ prompts = [
     "How effectively does this employee use technical documentation and operate equipment according to established procedures? Please describe how they access and apply information (e.g., blueprints, work orders), and how confidently they handle equipment and tools in their role."
 ]
 
-# Use Session State to manage form data
-if 'responses' not in st.session_state:
-    st.session_state.responses = [""] * len(prompts)
+from openai import OpenAI
 
-# Form handling
-with st.form("coaching_form"):
-    email = st.text_input("Employee Email *")
-    employee_name = st.text_input("Employee Name")
-    supervisor_name = st.text_input("Supervisor Name")
-    review_date = st.date_input("Date of Review", value=datetime.date.today())
-    department = st.selectbox("Department", [
-        "Rough In", "Paint Line", "Commercial Fabrication", "Baseboard Accessories"
-    ])
+client_ai = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
-    # Preserve form data in session state
-    for i, prompt in enumerate(prompts):
-        st.session_state.responses[i] = st.text_area(prompt, value=st.session_state.responses[i])
+def analyze_feedback(category, response):
+    prompt = f"""
+Evaluate the following feedback for the category \"{category}\". Provide:
+1. A rating from 1 to 5 (1 = Poor, 5 = Excellent)
+2. A brief 1–2 sentence explanation
 
-    submit_button = st.form_submit_button("Submit")
+Feedback:
+{response}
+
+Respond in this format:
+Rating: x/5
+Explanation: your summary here.
+"""
+    completion = client_ai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a performance coach generating professional ratings and summaries."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.3
+    )
+    return completion.choices[0].message.content.strip()
+
+# === DOCX GENERATION ===
+def create_report(employee_name, supervisor_name, review_date, department, responses, ai_feedbacks):
+    doc = Document()
+    doc.add_heading('MESTEK – Hourly Performance Appraisal', level=1)
+    doc.add_heading('Employee Information', level=2)
+
+    info_fields = [
+        ("Employee Name", employee_name),
+        ("Department", department),
+        ("Supervisor Name", supervisor_name),
+        ("Date of Review", review_date)
+    ]
+
+    for label, value in info_fields:
+        p = doc.add_paragraph()
+        p.add_run(f"• {label}: ").bold = True
+        p.add_run(str(value))
+        p.paragraph_format.space_after = Pt(0)
+
+    header = doc.add_heading('Core Performance Categories', level=2)
+    header.runs[0].font.size = Pt(10)
+    rating_description = doc.add_paragraph("1 – Poor | 2 – Needs Improvement | 3 – Meets Expectations | 4 – Exceeds Expectations | 5 – Outstanding")
+    for run in rating_description.runs:
+        run.font.size = Pt(8)  # Smaller font for rating description
+
+    table = doc.add_table(rows=1, cols=3)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.autofit = False
+    widths = [Inches(1.0), Inches(0.5), Inches(5.0)]  # Adjust widths: smaller middle column
+    for i, width in enumerate(widths):
+        for cell in table.columns[i].cells:
+            cell.width = width
+
+    hdr = table.rows[0].cells
+    hdr[0].text = "Category"
+    hdr[1].text = "Rating (1–5)"
+    hdr[2].text = "Supervisor Comments"
+    for cell in hdr:
+        for p in cell.paragraphs:
+            p.runs[0].bold = True
+
+    ratings = []
+    for i, cat in enumerate(categories):
+        row = table.add_row().cells
+        row[0].text = cat
+        rating = explanation = "N/A"
+        for line in ai_feedbacks[i].splitlines():
+            if line.lower().startswith("rating:"):
+                rating = line.split(":")[1].strip().split("/")[0]
+            elif line.lower().startswith("explanation:"):
+                explanation = line.split(":", 1)[1].strip()
+        row[1].text = rating
+        for p in row[1].paragraphs:
+            for r in p.runs:
+                r.font.size = Pt(9)
+            p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        row[2].text = responses[i]
+        try:
+            ratings.append(float(rating))
+        except:
+            pass
+
+    tbl = table._tbl
+    for cell in tbl.iter_tcs():
+        tcPr = cell.get_or_add_tcPr()
+        borders = OxmlElement('w:tcBorders')
+        for edge in ('top', 'left', 'bottom', 'right'):
+            edge_el = OxmlElement(f'w:{edge}')
+            edge_el.set(qn('w:val'), 'single')
+            edge_el.set(qn('w:sz'), '6')
+            edge_el.set(qn('w:space'), '0')
+            edge_el.set(qn('w:color'), '000000')
+            borders.append(edge_el)
+        tcPr.append(borders)
+
+    avg = round(sum(ratings)/len(ratings), 2) if ratings else 0
+    summary = (
+        f"The employee shows patterns that indicate coaching is needed in multiple performance areas. "
+        f"Common themes include feedback resistance, limited communication, poor reliability, and low adaptability. "
+        f"The overall performance score is {avg}/5."
+    )
+
+    doc.add_heading('Performance Summary', level=2)
+    doc.add_paragraph(summary)
+
+    doc.add_heading('Goals for Next Review Period', level=2)
+    for i in range(1, 4):
+        doc.add_paragraph(f"{i}. ____________________________________________")
+
+    doc.add_heading('Sign-Offs', level=2)
+    doc.add_paragraph("Employee Signature: ____________________      Date: __________")
+    doc.add_paragraph("Supervisor Signature: __________________      Date: __________")
+
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+# === EMAIL REPORT ===
+def send_email(to_email, subject, body, attachment_bytes, attachment_filename):
+    msg = EmailMessage()
+    msg['Subject'] = subject
+    msg['From'] = SENDER_EMAIL
+    msg['To'] = to_email
+    msg.set_content(body)
+    msg.add_attachment(attachment_bytes.read(), maintype='application',
+                       subtype='vnd.openxmlformats-officedocument.wordprocessingml.document',
+                       filename=attachment_filename)
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+        smtp.login(SENDER_EMAIL, SENDER_PASSWORD)
+        smtp.send_message(msg)
+
+# === UI ===
+st.title("Supervisor Feedback - Auto Evaluation")
+
+tab1, tab2 = st.tabs(["Submit New Coaching Report", "View Past Coaching Reports"])
+
+with tab1:
+    with st.form("coaching_form"):
+        email = st.text_input("Employee Email *")
+        employee_name = st.text_input("Employee Name")
+        supervisor_name = st.text_input("Supervisor Name")
+        review_date = st.date_input("Date of Review", value=datetime.date.today())
+        department = st.selectbox("Department", [
+            "Rough In", "Paint Line", "Commercial Fabrication", "Baseboard Accessories"
+        ])
+        responses = [st.text_area(q) for q in prompts]
+        submit_button = st.form_submit_button("Submit")
 
     if submit_button:
-        if not email or not all(st.session_state.responses):
+        if not email or not all(responses):
             st.warning("Please complete all fields.")
         else:
             st.info("Analyzing with AI...")
-            ai_feedbacks = [analyze_feedback(cat, resp) for cat, resp in zip(categories, st.session_state.responses)]
+            ai_feedbacks = [analyze_feedback(cat, resp) for cat, resp in zip(categories, responses)]
             ratings = [f.splitlines()[0].split(':')[-1].split('/')[0] for f in ai_feedbacks]
             sheet.append_row([email, employee_name, supervisor_name, str(review_date), department,
-                              *st.session_state.responses, *ratings, *ai_feedbacks])
-            report = create_report(employee_name, supervisor_name, str(review_date), department, st.session_state.responses, ai_feedbacks)
+                              *responses, *ratings, *ai_feedbacks])
+            report = create_report(employee_name, supervisor_name, str(review_date), department, responses, ai_feedbacks)
             send_email(email, f"Coaching Report for {employee_name}",
                        "Attached is your performance report from Mestek.",
                        report, f"{employee_name}_report.docx")
             st.success("✅ Report emailed and saved successfully!")
 
-            # Reset the form data after submission
-            st.session_state.responses = [""] * len(prompts)  # Reset only the responses, keeping other data intact
-
-# === VIEW PAST REPORTS ===
-with st.expander("View Past Coaching Reports"):
+with tab2:
     st.header("View Past Coaching Reports")
     data = sheet.get_all_values()
     if len(data) <= 1:
