@@ -1,6 +1,6 @@
 import streamlit as st
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 import openai
 from docx import Document
 from docx.shared import Pt, Inches
@@ -22,17 +22,15 @@ if st.text_input("Enter password", type="password") != PASSWORD:
 st.success("Access granted!")
 
 # === SETUP ===
-SERVICE_ACCOUNT_FILE = r"C:\Users\wfhq_lpham\Downloads\MYAPP\service_account.json"
-SHEET_NAME = "Coaching Assessment Form"
-OPENAI_API_KEY = "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"
-SENDER_EMAIL = "lunachpham@gmail.com"
-SENDER_PASSWORD = "slghgjioniviegtz"
-
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
+service_account_info = st.secrets["gcp_service_account"]
+creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
 client = gspread.authorize(creds)
+SHEET_NAME = "Coaching Assessment Form"
 sheet = client.open(SHEET_NAME).sheet1
-openai.api_key = OPENAI_API_KEY
+openai.api_key = st.secrets["openai_api_key"]
+SENDER_EMAIL = st.secrets["sender_email"]
+SENDER_PASSWORD = st.secrets["sender_password"]
 
 # === QUESTIONS ===
 categories = [
@@ -96,9 +94,9 @@ def create_report(employee_name, supervisor_name, review_date, department, respo
         p.add_run(str(value))
         p.paragraph_format.space_after = Pt(0)
 
-    doc.add_heading('Core Performance Categories', level=2).style.font.size = Pt(10)
-    doc.add_paragraph("1 – Poor | 2 – Needs Improvement | 3 – Meets Expectations | 4 – Exceeds Expectations | 5 – Outstanding").style.font.size = Pt(9)
-
+    header = doc.add_heading('Core Performance Categories', level=2)
+    header.runs[0].font.size = Pt(10)
+    doc.add_paragraph("1 – Poor | 2 – Needs Improvement | 3 – Meets Expectations | 4 – Exceeds Expectations | 5 – Outstanding")
 
     table = doc.add_table(rows=1, cols=3)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -137,7 +135,6 @@ def create_report(employee_name, supervisor_name, review_date, department, respo
         except:
             pass
 
-    # Add borders
     tbl = table._tbl
     for cell in tbl.iter_tcs():
         tcPr = cell.get_or_add_tcPr()
@@ -173,8 +170,6 @@ def create_report(employee_name, supervisor_name, review_date, department, respo
     doc.save(buffer)
     buffer.seek(0)
     return buffer
-
-
 
 # === EMAIL REPORT ===
 def send_email(to_email, subject, body, attachment_bytes, attachment_filename):

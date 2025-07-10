@@ -1,7 +1,5 @@
-
 streamlit
+gspread
 openai
-gspread-formatting
-oauth2client
 python-docx
-
+google-auth
