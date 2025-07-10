@@ -112,6 +112,7 @@ def create_report(employee_name, supervisor_name, review_date, department, respo
     return doc_buffer
 
 
+
 def send_email(receiver_email, subject, body, attachment, filename):
     msg = EmailMessage()
     msg.set_content(body)
@@ -119,13 +120,19 @@ def send_email(receiver_email, subject, body, attachment, filename):
     msg['From'] = SENDER_EMAIL
     msg['To'] = receiver_email
 
-    # Attach the document
-    msg.add_attachment(attachment, maintype='application', subtype='octet-stream', filename=filename)
+    # Attach the document (BytesIO)
+    msg.add_attachment(
+        attachment.read(),  # Read the file content from BytesIO buffer
+        maintype='application', 
+        subtype='octet-stream', 
+        filename=filename
+    )
 
     # Send the email
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.send_message(msg)
+
 
 
 # Form handling
