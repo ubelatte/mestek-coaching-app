@@ -10,6 +10,7 @@ from io import BytesIO
 import smtplib
 from email.message import EmailMessage
 import datetime
+import re
 
 # === PASSWORD GATE ===
 st.title("🔐 Secure Access")
@@ -55,34 +56,6 @@ prompts = [
     "How effectively does this employee use technical documentation and operate equipment according to established procedures? Please describe how they access and apply information (e.g., blueprints, work orders), and how confidently they handle equipment and tools in their role."
 ]
 
-# === FORMATTED SHEET WRITER ===
-def update_formatted_sheet(email, employee_name, supervisor_name, review_date, department, responses, ratings, ai_score, ai_summary):
-    timestamp = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
-
-    formatted_row = [
-        timestamp,
-        email,
-        employee_name,
-        supervisor_name,
-        str(review_date),
-        department,
-        responses[0], ratings[0],  # Feedback & Conflict Resolution
-        responses[1], ratings[1],  # Communication & Team Support
-        responses[2], ratings[2],  # Reliability & Productivity
-        responses[3], ratings[3],  # Adaptability & Quality Focus
-        responses[4], ratings[4],  # Safety Commitment
-        responses[5], ratings[5],  # Documentation & Procedures
-        "", ratings[5],            # Score | Score - Documentation & Procedures
-        ai_score,
-        ai_summary,
-        "✔️"
-    ]
-
-    sheet.append_row(formatted_row)
-    st.success("✅ Data saved in exact Google Form structure.")
-
-
-
 # === AI ANALYSIS ===
 def analyze_feedback(category, response):
     prompt = (
@@ -115,8 +88,6 @@ def summarize_overall_feedback(employee_name, feedbacks):
         return completion.choices[0].message.content.strip()
     except Exception as e:
         return f"(Summary unavailable: {e})"
-
-# === REST OF SCRIPT UNCHANGED === ...
 
 # === REPORT GENERATOR ===
 def create_report(employee, supervisor, review_date, department, categories, ratings, comments, summary):
@@ -174,8 +145,6 @@ def create_report(employee, supervisor, review_date, department, categories, rat
     buffer.seek(0)
     return buffer
 
-
-
 # === EMAIL SENDER ===
 def send_email(to_address, subject, body, attachment, filename):
     msg = EmailMessage()
@@ -187,6 +156,30 @@ def send_email(to_address, subject, body, attachment, filename):
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(SENDER_EMAIL, SENDER_PASSWORD)
         smtp.send_message(msg)
+
+# === GOOGLE FORM STRUCTURE WRITER ===
+def update_formatted_sheet(email, employee_name, supervisor_name, review_date, department, responses, ratings, ai_score, ai_summary):
+    timestamp = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    formatted_row = [
+        timestamp,
+        email,
+        employee_name,
+        supervisor_name,
+        str(review_date),
+        department,
+        responses[0], ratings[0],
+        responses[1], ratings[1],
+        responses[2], ratings[2],
+        responses[3], ratings[3],
+        responses[4], ratings[4],
+        responses[5], ratings[5],
+        "", ratings[5],
+        ai_score,
+        ai_summary,
+        "✔️"
+    ]
+    sheet.append_row(formatted_row)
+    st.success("✅ Data saved to Google Form-style sheet format.")
 
 # === SESSION INIT ===
 if 'responses' not in st.session_state:
@@ -215,8 +208,20 @@ with st.form("coaching_form"):
             summaries = [f.split("Summary:")[-1].strip() for f in feedbacks]
             overall_summary = summarize_overall_feedback(employee_name, feedbacks)
 
-            sheet.append_row([email, employee_name, supervisor_name, str(review_date), department,
-                              *st.session_state.responses, *ratings, *summaries])
+            ai_score_match = re.search(r"Overall performance score: (\d+(?:\.\d+)?)/5", overall_summary)
+            ai_score = ai_score_match.group(1) if ai_score_match else "N/A"
+
+            update_formatted_sheet(
+                email=email,
+                employee_name=employee_name,
+                supervisor_name=supervisor_name,
+                review_date=review_date,
+                department=department,
+                responses=st.session_state.responses,
+                ratings=ratings,
+                ai_score=ai_score,
+                ai_summary=overall_summary
+            )
 
             report = create_report(employee_name, supervisor_name, str(review_date), department,
                                    categories, ratings, summaries, overall_summary)
@@ -227,5 +232,3 @@ with st.form("coaching_form"):
 
             st.success("✅ Report emailed and saved successfully!")
             st.session_state.responses = [""] * len(prompts)
-
-
