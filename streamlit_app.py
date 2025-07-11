@@ -1,7 +1,7 @@
 import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
-import openai
+from openai import OpenAI  # ✅ new SDK usage
 from docx import Document
 from docx.shared import Pt, Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
@@ -21,28 +21,29 @@ if st.text_input("Enter password", type="password") != PASSWORD:
     st.stop()
 st.success("Access granted!")
 
+# === SETUP ===
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+service_account_info = st.secrets["gcp_service_account"]
+creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
+client_gsheets = gspread.authorize(creds)
+SHEET_NAME = "Automated Supervisor Report"
+sheet = client_gsheets.open(SHEET_NAME).sheet1
+
+client_openai = OpenAI(api_key=st.secrets["openai"]["api_key"])  # ✅ new client
+
+SENDER_EMAIL = st.secrets["sender_email"]["sender_email"]
+SENDER_PASSWORD = st.secrets["sender_password"]["sender_password"]
+
+# === TEST GPT CONNECTION ===
 if st.checkbox("Test GPT response"):
     try:
-        test = openai.ChatCompletion.create(
+        test = client_openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": "Say hello from Streamlit"}]
         )
         st.success(test.choices[0].message.content)
     except Exception as e:
         st.error(f"❌ GPT error: {e}")
-
-
-# === SETUP ===
-scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-service_account_info = st.secrets["gcp_service_account"]
-creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
-client = gspread.authorize(creds)
-SHEET_NAME = "Automated Supervisor Report"
-sheet = client.open(SHEET_NAME).sheet1
-
-openai.api_key = st.secrets["openai"]["api_key"]
-SENDER_EMAIL = st.secrets["sender_email"]["sender_email"]
-SENDER_PASSWORD = st.secrets["sender_password"]["sender_password"]
 
 # === CATEGORIES & PROMPTS ===
 categories = [
@@ -73,7 +74,7 @@ def analyze_feedback(category, response):
     )
 
     try:
-        completion = openai.ChatCompletion.create(
+        completion = client_openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
