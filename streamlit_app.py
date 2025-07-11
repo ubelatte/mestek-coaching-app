@@ -169,23 +169,22 @@ def update_formatted_sheet(email, employee_name, supervisor_name, review_date, d
         str(review_date),        # Date of Review
         department,              # Department
 
-        responses[0], ratings[0],  # Q1 + Score 1
-        responses[1], ratings[1],  # Q2 + Score 2
-        responses[2], ratings[2],  # Q3 + Score 3
-        responses[3], ratings[3],  # Q4 + Score 4
-        responses[4], ratings[4],  # Q5 + Score 5
-        responses[5], ratings[5],  # Q6 + Score 6
+        responses[0], ratings[0],  # Q1 & Score
+        responses[1], ratings[1],  # Q2 & Score
+        responses[2], ratings[2],  # Q3 & Score
+        responses[3], ratings[3],  # Q4 & Score
+        responses[4], ratings[4],  # Q5 & Score
+        responses[5], ratings[5],  # Q6 & Score - Documentation & Procedures
 
-        "",                      # <== Blank column
-        ratings[5],              # Score - Documentation & Procedures (again)
-
-        ai_score,                # AI Score
-        ai_summary,              # AI Feedback
-        "✔️"                     # Processed
+        ai_score,
+        ai_summary,
+        "✔️"
     ]
 
     sheet.append_row(formatted_row, value_input_option="USER_ENTERED")
-    st.success("✅ Data appended correctly in Google Form format.")
+    st.success("✅ Row correctly saved to Google Sheet.")
+
+
 
 
 # === SESSION INIT ===
