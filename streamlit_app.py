@@ -12,10 +12,11 @@ from email.message import EmailMessage
 import datetime
 
 try:
-    spreadsheet = gsheet_client.open("Automated Supervisor Report")
+    spreadsheet = client.open("Automated Supervisor Report")
     st.success("✅ Successfully connected to Google Sheet")
 except Exception as e:
     st.error(f"❌ Sheet connection error: {e}")
+
 
 # === PASSWORD GATE ===
 st.title("\U0001F512 Secure Access")
