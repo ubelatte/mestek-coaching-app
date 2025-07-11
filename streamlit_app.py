@@ -160,26 +160,33 @@ def send_email(to_address, subject, body, attachment, filename):
 # === GOOGLE FORM STRUCTURE WRITER ===
 def update_formatted_sheet(email, employee_name, supervisor_name, review_date, department, responses, ratings, ai_score, ai_summary):
     timestamp = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+
     formatted_row = [
-        timestamp,
-        email,
-        employee_name,
-        supervisor_name,
-        str(review_date),
-        department,
-        responses[0], ratings[0],
-        responses[1], ratings[1],
-        responses[2], ratings[2],
-        responses[3], ratings[3],
-        responses[4], ratings[4],
-        responses[5], ratings[5],
-        "", ratings[5],
-        ai_score,
-        ai_summary,
-        "✔️"
+        timestamp,                # Timestamp
+        email,                   # Email Address
+        employee_name,           # Employee Name
+        supervisor_name,         # Supervisor Name
+        str(review_date),        # Date of Review
+        department,              # Department
+
+        responses[0], ratings[0],  # Q1 + Score 1
+        responses[1], ratings[1],  # Q2 + Score 2
+        responses[2], ratings[2],  # Q3 + Score 3
+        responses[3], ratings[3],  # Q4 + Score 4
+        responses[4], ratings[4],  # Q5 + Score 5
+        responses[5], ratings[5],  # Q6 + Score 6
+
+        "",                      # <== Blank column
+        ratings[5],              # Score - Documentation & Procedures (again)
+
+        ai_score,                # AI Score
+        ai_summary,              # AI Feedback
+        "✔️"                     # Processed
     ]
-    sheet.append_row(formatted_row)
-    st.success("✅ Data saved to Google Form-style sheet format.")
+
+    sheet.append_row(formatted_row, value_input_option="USER_ENTERED")
+    st.success("✅ Data appended correctly in Google Form format.")
+
 
 # === SESSION INIT ===
 if 'responses' not in st.session_state:
