@@ -88,17 +88,20 @@ def create_report(employee, supervisor, review_date, department, categories, rat
     doc = Document()
     doc.add_heading("MESTEK – Hourly Performance Appraisal", level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
+    doc.add_heading("Employee Information", level=2)
     info = doc.add_paragraph()
-    info.add_run("Employee Information\n").bold = True
     info.add_run(f"• Employee Name: {employee}\n")
     info.add_run(f"• Department: {department}\n")
     info.add_run(f"• Supervisor Name: {supervisor}\n")
     info.add_run(f"• Date of Review: {review_date}\n")
 
-    doc.add_paragraph("Core Performance Categories").alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-    doc.add_paragraph(
+    doc.add_heading("Core Performance Categories", level=2)
+    category_note = doc.add_paragraph(
         "1 – Poor | 2 – Needs Improvement | 3 – Meets Expectations | 4 – Exceeds Expectations | 5 – Outstanding"
-    ).alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+    )
+    for run in category_note.runs:
+        run.font.size = Pt(9)
+    category_note.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
 
     table = doc.add_table(rows=1, cols=3)
     table.style = 'Table Grid'
@@ -109,10 +112,10 @@ def create_report(employee, supervisor, review_date, department, categories, rat
     hdr_cells[2].text = 'Supervisor Comments'
 
     for row in table.rows:
-        for cell in row.cells:
+        for i, cell in enumerate(row.cells):
             cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
             for paragraph in cell.paragraphs:
-                paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER if cell.text.startswith("Rating") else WD_PARAGRAPH_ALIGNMENT.LEFT
+                paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER if i == 1 else WD_PARAGRAPH_ALIGNMENT.LEFT
 
     for cat, rating, comment in zip(categories, ratings, comments):
         row_cells = table.add_row().cells
@@ -137,6 +140,7 @@ def create_report(employee, supervisor, review_date, department, categories, rat
     doc.save(buffer)
     buffer.seek(0)
     return buffer
+
 
 
 # === EMAIL SENDER ===
