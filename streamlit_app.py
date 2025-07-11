@@ -199,23 +199,3 @@ with st.form("coaching_form"):
             st.session_state.responses = [""] * len(prompts)
 
 
-# === VIEW PAST REPORTS ===
-with st.expander("View Past Coaching Reports"):
-    st.header("View Past Coaching Reports")
-    data = sheet.get_all_values()
-    if len(data) <= 1:
-        st.info("No reports yet.")
-    else:
-        supervisors = sorted(set(row[2].strip() for row in data[1:] if row[2].strip()))
-        selected = st.selectbox("Select Supervisor", ["--Select--"] + supervisors)
-        if selected != "--Select--":
-            filtered = [r for r in data[1:] if r[2].strip().lower() == selected.lower()]
-            for i, row in enumerate(filtered, 1):
-                st.markdown(f"### Report {i}")
-                st.write(f"Date: {row[3]}, Department: {row[4]}")
-                for j, cat in enumerate(categories):
-                    st.markdown(f"**{cat}**")
-                    st.write(f"- Comment: {row[5 + j]}")
-                    st.write(f"- Rating: {row[5 + len(categories) + j]}/5")
-                    st.write(f"- AI Summary: {row[5 + 2 * len(categories) + j]}")
-                st.markdown("---")
