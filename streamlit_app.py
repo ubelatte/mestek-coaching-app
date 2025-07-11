@@ -127,10 +127,8 @@ def create_report(employee, supervisor, review_date, department, categories, rat
         row_cells[2].text = comment
         row_cells[1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
-    doc.add_page_break()  # ✅ Force Performance Summary to start on page 2
-    doc.add_paragraph("Performance Summary", style='Heading 2')
+    doc.add_paragraph("\nPerformance Summary", style='Heading 2')
     doc.add_paragraph(summary)
-
 
     doc.add_paragraph("\nGoals for Next Review Period", style='Heading 2')
     doc.add_paragraph("1. ________________________________")
