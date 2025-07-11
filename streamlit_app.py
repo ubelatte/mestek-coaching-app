@@ -71,13 +71,14 @@ def update_formatted_sheet(email, employee_name, supervisor_name, review_date, d
         responses[3], ratings[3],
         responses[4], ratings[4],
         responses[5], ratings[5],
-        "", ratings[5],  # Empty + Doc score
+        "", ratings[5],  # Placeholder column + score repeat
         ai_score,
         ai_summary,
         "✔️"
     ]
     sheet.append_row(formatted_row)
-    st.success("✅ Formatted Google Form-style row saved!")
+    st.success("✅ Google Form-style row saved in correct column order!")
+
 
 # === AI ANALYSIS ===
 def analyze_feedback(category, response):
