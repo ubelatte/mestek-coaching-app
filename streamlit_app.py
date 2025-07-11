@@ -47,12 +47,12 @@ categories = [
 ]
 
 prompts = [
-    "How does this employee respond to feedback and conflict?",
-    "How effectively does this employee communicate and support the team?",
-    "How reliable and productive is this employee?",
-    "How adaptable is this employee and how do they ensure quality?",
-    "How does this employee show commitment to safety and workplace organization?",
-    "How does this employee use documentation and follow procedures?"
+    "How does this employee typically respond to feedback — especially when it differs from their own opinion? Do they apply it constructively, and do they help others do the same when it comes to resolving conflict and promoting cooperation?",
+    "How effectively does this employee communicate with others? How well does this employee support their team - including their willingness to shift focus, assist other teams, or go beyond their assigned duties?",
+    "How reliable is this employee in terms of attendance and use of time? Does this employee consistently meet or exceed productivity standards, follow company policies, and actively contribute ideas for improving standard work?",
+    "When your team encounters workflow disruptions or shifting priorities, how does this employee typically respond? How does this employee contribute to maintaining and improving product quality?",
+    "In what ways does this employee demonstrate commitment to safety and workplace organization? Can you provide an example of how they follow safety procedures and apply 5S principles (Sort, Set in Order, Shine, Standardize, Sustain) in their work area?",
+    "How effectively does this employee use technical documentation and operate equipment according to established procedures? Please describe how they access and apply information (e.g., blueprints, work orders), and how confidently they handle equipment and tools in their role."
 ]
 
 # === AI ANALYSIS ===
@@ -143,6 +143,7 @@ def create_report(employee, supervisor, review_date, department, categories, rat
     doc.save(buffer)
     buffer.seek(0)
     return buffer
+
 
 
 # === EMAIL SENDER ===
