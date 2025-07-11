@@ -58,6 +58,7 @@ prompts = [
 # === FORMATTED SHEET WRITER ===
 def update_formatted_sheet(email, employee_name, supervisor_name, review_date, department, responses, ratings, ai_score, ai_summary):
     timestamp = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+
     formatted_row = [
         timestamp,
         email,
@@ -65,19 +66,21 @@ def update_formatted_sheet(email, employee_name, supervisor_name, review_date, d
         supervisor_name,
         str(review_date),
         department,
-        responses[0], ratings[0],
-        responses[1], ratings[1],
-        responses[2], ratings[2],
-        responses[3], ratings[3],
-        responses[4], ratings[4],
-        responses[5], ratings[5],
-        "", ratings[5],  # Placeholder column + score repeat
+        responses[0], ratings[0],  # Feedback & Conflict Resolution
+        responses[1], ratings[1],  # Communication & Team Support
+        responses[2], ratings[2],  # Reliability & Productivity
+        responses[3], ratings[3],  # Adaptability & Quality Focus
+        responses[4], ratings[4],  # Safety Commitment
+        responses[5], ratings[5],  # Documentation & Procedures
+        "", ratings[5],            # Score | Score - Documentation & Procedures
         ai_score,
         ai_summary,
         "✔️"
     ]
+
     sheet.append_row(formatted_row)
-    st.success("✅ Google Form-style row saved in correct column order!")
+    st.success("✅ Data saved in exact Google Form structure.")
+
 
 
 # === AI ANALYSIS ===
