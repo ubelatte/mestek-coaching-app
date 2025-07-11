@@ -1,20 +1,18 @@
 import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
-from openai import OpenAI  # ✅ new SDK usage
+from openai import OpenAI
 from docx import Document
-from docx.shared import Pt, Inches
+from docx.shared import Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
 from io import BytesIO
 import smtplib
 from email.message import EmailMessage
 import datetime
 
 # === PASSWORD GATE ===
-st.title("🔐 Secure Access")
+st.title("\U0001F512 Secure Access")
 PASSWORD = "WFHQmestek413"
 if st.text_input("Enter password", type="password") != PASSWORD:
     st.warning("Access denied. Please enter the correct password.")
@@ -25,25 +23,13 @@ st.success("Access granted!")
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 service_account_info = st.secrets["gcp_service_account"]
 creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
-client_gsheets = gspread.authorize(creds)
+gsheet_client = gspread.authorize(creds)
 SHEET_NAME = "Automated Supervisor Report"
-sheet = client_gsheets.open(SHEET_NAME).sheet1
+sheet = gsheet_client.open(SHEET_NAME).sheet1
 
-client_openai = OpenAI(api_key=st.secrets["openai"]["api_key"])  # ✅ new client
-
+client_openai = OpenAI(api_key=st.secrets["openai"]["api_key"])
 SENDER_EMAIL = st.secrets["sender_email"]["sender_email"]
 SENDER_PASSWORD = st.secrets["sender_password"]["sender_password"]
-
-# === TEST GPT CONNECTION ===
-if st.checkbox("Test GPT response"):
-    try:
-        test = client_openai.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": "Say hello from Streamlit"}]
-        )
-        st.success(test.choices[0].message.content)
-    except Exception as e:
-        st.error(f"❌ GPT error: {e}")
 
 # === CATEGORIES & PROMPTS ===
 categories = [
@@ -56,23 +42,20 @@ categories = [
 ]
 
 prompts = [
-    "How does this employee typically respond to feedback — especially when it differs from their own opinion? Do they apply it constructively, and do they help others do the same when it comes to resolving conflict and promoting cooperation?",
-    "How effectively does this employee communicate with others? How well does this employee support their team - including their willingness to shift focus, assist other teams, or go beyond their assigned duties?",
-    "How reliable is this employee in terms of attendance and use of time? Does this employee consistently meet or exceed productivity standards, follow company policies, and actively contribute ideas for improving standard work?",
-    "When your team encounters workflow disruptions or shifting priorities, how does this employee typically respond? How does this employee contribute to maintaining and improving product quality?",
-    "In what ways does this employee demonstrate commitment to safety and workplace organization? Can you provide an example of how they follow safety procedures and apply 5S principles (Sort, Set in Order, Shine, Standardize, Sustain) in their work area?",
-    "How effectively does this employee use technical documentation and operate equipment according to established procedures? Please describe how they access and apply information (e.g., blueprints, work orders), and how confidently they handle equipment and tools in their role."
+    "How does this employee respond to feedback and conflict?",
+    "How effectively does this employee communicate and support the team?",
+    "How reliable and productive is this employee?",
+    "How adaptable is this employee and how do they ensure quality?",
+    "How does this employee show commitment to safety and workplace organization?",
+    "How does this employee use documentation and follow procedures?"
 ]
 
-# === ANALYSIS FUNCTION ===
+# === AI ANALYSIS ===
 def analyze_feedback(category, response):
     prompt = (
-        f"You are an HR performance analyst. Rate the following employee comment related to '{category}' "
-        f"on a scale of 1 to 5, and explain why. Provide your output in this format:\n\n"
-        f"Rating: X/5\nSummary: ...\n\n"
-        f"Comment:\n{response}"
+        f"You are an HR analyst. Rate the employee's response on '{category}' from 1 to 5. "
+        f"Then summarize in 1-2 sentences. Format: Rating: X/5\nSummary: ...\n\nResponse: {response}"
     )
-
     try:
         completion = client_openai.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -83,34 +66,63 @@ def analyze_feedback(category, response):
     except Exception as e:
         return f"Rating: 3/5\nSummary: AI error: {e}"
 
+def summarize_overall_feedback(employee_name, feedbacks):
+    joined = "\n\n".join(feedbacks)
+    prompt = (
+        f"Summarize overall performance for {employee_name} based on the following evaluations.\n"
+        f"Write a 2–3 sentence paragraph that highlights strengths and any improvement areas.\n\n{joined}"
+    )
+    try:
+        completion = client_openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+        )
+        return completion.choices[0].message.content.strip()
+    except Exception as e:
+        return f"(Summary unavailable: {e})"
+
 # === REPORT GENERATOR ===
-def create_report(employee, supervisor, review_date, department, responses, ai_feedbacks):
+def create_report(employee, supervisor, review_date, department, categories, ratings, comments, summary):
     doc = Document()
-    doc.add_heading(f'Coaching Report: {employee}', 0)
+    doc.add_heading("MESTEK – Hourly Performance Appraisal", level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    info = doc.add_paragraph()
+    info.add_run("Employee Information\n").bold = True
+    info.add_run(f"• Employee Name: {employee}")
+    info.add_run(f"• Department: {department}")
+    info.add_run(f"• Supervisor Name: {supervisor}")
+    info.add_run(f"• Date of Review: {review_date}")
+
+    doc.add_paragraph(
+        "Core Performance Categories\n1 – Poor | 2 – Needs Improvement | 3 – Meets Expectations | 4 – Exceeds Expectations | 5 – Outstanding",
+        style='Intense Quote')
 
     table = doc.add_table(rows=1, cols=3)
-    table.alignment = WD_TABLE_ALIGNMENT.CENTER
     table.style = 'Table Grid'
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
     hdr_cells = table.rows[0].cells
     hdr_cells[0].text = 'Category'
-    hdr_cells[1].text = 'Rating'
-    hdr_cells[2].text = 'Explanation'
+    hdr_cells[1].text = 'Rating (1–5)'
+    hdr_cells[2].text = 'Supervisor Comments'
 
-    for category, ai_result in zip(categories, ai_feedbacks):
-        lines = ai_result.splitlines()
-        rating = next((line for line in lines if "Rating" in line), "Rating: N/A")
-        summary = next((line for line in lines if "Summary" in line), "Summary: N/A")
+    for cat, rating, comment in zip(categories, ratings, comments):
         row_cells = table.add_row().cells
-        row_cells[0].text = category
-        row_cells[1].text = rating.replace("Rating:", "").strip()
-        row_cells[2].text = summary.replace("Summary:", "").strip()
+        row_cells[0].text = cat
+        row_cells[1].text = str(rating)
+        row_cells[2].text = comment
 
-    doc.add_paragraph("\nDevelopment Goals:")
-    doc.add_paragraph("1. ____________________________________", style='List Number')
-    doc.add_paragraph("2. ____________________________________", style='List Number')
-    doc.add_paragraph("3. ____________________________________", style='List Number')
-    doc.add_paragraph("\nEmployee Signature: ____________________________    Date: ____________")
-    doc.add_paragraph("Supervisor Signature: __________________________  Date: ____________")
+    doc.add_paragraph("\nPerformance Summary", style='Heading 2')
+    doc.add_paragraph(summary)
+
+    doc.add_paragraph("\nGoals for Next Review Period", style='Heading 2')
+    doc.add_paragraph("1. ________________________________")
+    doc.add_paragraph("2. ________________________________")
+    doc.add_paragraph("3. ________________________________")
+
+    doc.add_paragraph("\nSign-Offs", style='Heading 2')
+    doc.add_paragraph("Employee Signature: ________________    Date: ____________")
+    doc.add_paragraph("Supervisor Signature: ________________  Date: ____________")
 
     buffer = BytesIO()
     doc.save(buffer)
@@ -124,14 +136,12 @@ def send_email(to_address, subject, body, attachment, filename):
     msg["To"] = to_address
     msg["Subject"] = subject
     msg.set_content(body)
-
     msg.add_attachment(attachment.read(), maintype="application", subtype="vnd.openxmlformats-officedocument.wordprocessingml.document", filename=filename)
-
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(SENDER_EMAIL, SENDER_PASSWORD)
         smtp.send_message(msg)
 
-# === SESSION STATE INIT ===
+# === SESSION INIT ===
 if 'responses' not in st.session_state:
     st.session_state.responses = [""] * len(prompts)
 
@@ -141,9 +151,7 @@ with st.form("coaching_form"):
     employee_name = st.text_input("Employee Name")
     supervisor_name = st.text_input("Supervisor Name")
     review_date = st.date_input("Date of Review", value=datetime.date.today())
-    department = st.selectbox("Department", [
-        "Rough In", "Paint Line", "Commercial Fabrication", "Baseboard Accessories"
-    ])
+    department = st.selectbox("Department", ["Rough In", "Paint Line", "Commercial Fabrication", "Baseboard Accessories"])
 
     for i, prompt in enumerate(prompts):
         st.session_state.responses[i] = st.text_area(prompt, value=st.session_state.responses[i])
@@ -155,19 +163,24 @@ with st.form("coaching_form"):
             st.warning("Please complete all fields.")
         else:
             st.info("Analyzing with AI...")
-            ai_feedbacks = [analyze_feedback(cat, resp) for cat, resp in zip(categories, st.session_state.responses)]
-            ratings = [f.splitlines()[0].split(':')[-1].split('/')[0] for f in ai_feedbacks]
+            feedbacks = [analyze_feedback(cat, resp) for cat, resp in zip(categories, st.session_state.responses)]
+            ratings = [f.splitlines()[0].split(":")[-1].split("/")[0].strip() for f in feedbacks]
+            summaries = [f.split("Summary:")[-1].strip() for f in feedbacks]
+            overall_summary = summarize_overall_feedback(employee_name, feedbacks)
 
             sheet.append_row([email, employee_name, supervisor_name, str(review_date), department,
-                              *st.session_state.responses, *ratings, *ai_feedbacks])
+                              *st.session_state.responses, *ratings, *summaries])
 
-            report = create_report(employee_name, supervisor_name, str(review_date), department, st.session_state.responses, ai_feedbacks)
+            report = create_report(employee_name, supervisor_name, str(review_date), department,
+                                   categories, ratings, summaries, overall_summary)
+
             send_email(email, f"Coaching Report for {employee_name}",
                        "Attached is your performance report from Mestek.",
                        report, f"{employee_name}_report.docx")
 
             st.success("✅ Report emailed and saved successfully!")
             st.session_state.responses = [""] * len(prompts)
+
 
 # === VIEW PAST REPORTS ===
 with st.expander("View Past Coaching Reports"):
