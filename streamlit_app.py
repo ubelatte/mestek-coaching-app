@@ -55,6 +55,30 @@ prompts = [
     "How effectively does this employee use technical documentation and operate equipment according to established procedures? Please describe how they access and apply information (e.g., blueprints, work orders), and how confidently they handle equipment and tools in their role."
 ]
 
+# === FORMATTED SHEET WRITER ===
+def update_formatted_sheet(email, employee_name, supervisor_name, review_date, department, responses, ratings, ai_score, ai_summary):
+    timestamp = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    formatted_row = [
+        timestamp,
+        email,
+        employee_name,
+        supervisor_name,
+        str(review_date),
+        department,
+        responses[0], ratings[0],
+        responses[1], ratings[1],
+        responses[2], ratings[2],
+        responses[3], ratings[3],
+        responses[4], ratings[4],
+        responses[5], ratings[5],
+        "", ratings[5],  # Empty + Doc score
+        ai_score,
+        ai_summary,
+        "✔️"
+    ]
+    sheet.append_row(formatted_row)
+    st.success("✅ Formatted Google Form-style row saved!")
+
 # === AI ANALYSIS ===
 def analyze_feedback(category, response):
     prompt = (
@@ -87,6 +111,8 @@ def summarize_overall_feedback(employee_name, feedbacks):
         return completion.choices[0].message.content.strip()
     except Exception as e:
         return f"(Summary unavailable: {e})"
+
+# === REST OF SCRIPT UNCHANGED === ...
 
 # === REPORT GENERATOR ===
 def create_report(employee, supervisor, review_date, department, categories, ratings, comments, summary):
