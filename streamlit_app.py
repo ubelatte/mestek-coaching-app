@@ -5,14 +5,14 @@ from openai import OpenAI
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
 from io import BytesIO
 import smtplib
 from email.message import EmailMessage
 import datetime
 
 # === PASSWORD GATE ===
-st.title("\U0001F512 Secure Access")
+st.title("🔐 Secure Access")
 PASSWORD = "WFHQmestek413"
 if st.text_input("Enter password", type="password") != PASSWORD:
     st.warning("Access denied. Please enter the correct password.")
@@ -70,7 +70,8 @@ def summarize_overall_feedback(employee_name, feedbacks):
     joined = "\n\n".join(feedbacks)
     prompt = (
         f"Summarize overall performance for {employee_name} based on the following evaluations.\n"
-        f"Write a 2–3 sentence paragraph that highlights strengths and any improvement areas.\n\n{joined}"
+        f"Write a 2–3 sentence paragraph that highlights strengths and any improvement areas.\n"
+        f"At the end, include an overall score out of 5 in the format: 'Overall performance score: X.XX/5'.\n\n{joined}"
     )
     try:
         completion = client_openai.chat.completions.create(
@@ -89,14 +90,15 @@ def create_report(employee, supervisor, review_date, department, categories, rat
 
     info = doc.add_paragraph()
     info.add_run("Employee Information\n").bold = True
-    info.add_run(f"• Employee Name: {employee}")
-    info.add_run(f"• Department: {department}")
-    info.add_run(f"• Supervisor Name: {supervisor}")
-    info.add_run(f"• Date of Review: {review_date}")
+    info.add_run(f"• Employee Name: {employee}\n")
+    info.add_run(f"• Department: {department}\n")
+    info.add_run(f"• Supervisor Name: {supervisor}\n")
+    info.add_run(f"• Date of Review: {review_date}\n")
 
+    doc.add_paragraph("Core Performance Categories").alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
     doc.add_paragraph(
-        "Core Performance Categories\n1 – Poor | 2 – Needs Improvement | 3 – Meets Expectations | 4 – Exceeds Expectations | 5 – Outstanding",
-        style='Intense Quote')
+        "1 – Poor | 2 – Needs Improvement | 3 – Meets Expectations | 4 – Exceeds Expectations | 5 – Outstanding"
+    ).alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
 
     table = doc.add_table(rows=1, cols=3)
     table.style = 'Table Grid'
@@ -106,11 +108,18 @@ def create_report(employee, supervisor, review_date, department, categories, rat
     hdr_cells[1].text = 'Rating (1–5)'
     hdr_cells[2].text = 'Supervisor Comments'
 
+    for row in table.rows:
+        for cell in row.cells:
+            cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+            for paragraph in cell.paragraphs:
+                paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER if cell.text.startswith("Rating") else WD_PARAGRAPH_ALIGNMENT.LEFT
+
     for cat, rating, comment in zip(categories, ratings, comments):
         row_cells = table.add_row().cells
         row_cells[0].text = cat
         row_cells[1].text = str(rating)
         row_cells[2].text = comment
+        row_cells[1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
     doc.add_paragraph("\nPerformance Summary", style='Heading 2')
     doc.add_paragraph(summary)
@@ -128,6 +137,7 @@ def create_report(employee, supervisor, review_date, department, categories, rat
     doc.save(buffer)
     buffer.seek(0)
     return buffer
+
 
 # === EMAIL SENDER ===
 def send_email(to_address, subject, body, attachment, filename):
