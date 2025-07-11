@@ -21,6 +21,17 @@ if st.text_input("Enter password", type="password") != PASSWORD:
     st.stop()
 st.success("Access granted!")
 
+if st.checkbox("Test GPT response"):
+    try:
+        test = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": "Say hello from Streamlit"}]
+        )
+        st.success(test.choices[0].message.content)
+    except Exception as e:
+        st.error(f"❌ GPT error: {e}")
+
+
 # === SETUP ===
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 service_account_info = st.secrets["gcp_service_account"]
