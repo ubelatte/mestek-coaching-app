@@ -11,12 +11,6 @@ import smtplib
 from email.message import EmailMessage
 import datetime
 
-try:
-    spreadsheet = client.open("Automated Supervisor Report")
-    st.success("✅ Successfully connected to Google Sheet")
-except Exception as e:
-    st.error(f"❌ Sheet connection error: {e}")
-
 
 # === PASSWORD GATE ===
 st.title("\U0001F512 Secure Access")
@@ -25,6 +19,18 @@ if st.text_input("Enter password", type="password") != PASSWORD:
     st.warning("Access denied. Please enter the correct password.")
     st.stop()
 st.success("Access granted!")
+
+try:
+    sheet = gspread.authorize(
+        Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"],
+            scopes=['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        )
+    ).open("Automated Supervisor Report").sheet1
+    st.success("✅ Successfully connected to Google Sheet")
+except Exception as e:
+    st.error(f"❌ Sheet connection error: {e}")
+
 
 # === SETUP ===
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
