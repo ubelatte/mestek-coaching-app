@@ -16,7 +16,7 @@ import re
 st.title("🔐 Secure Access")
 PASSWORD = "WFHQmestek413"
 if st.text_input("Enter password", type="password") != PASSWORD:
-    st.warning("Access denied. Please enter the correct password.")
+    st.warning("Please enter the correct password and press Enter.")
     st.stop()
 st.success("Access granted!")
 
@@ -137,8 +137,8 @@ def create_report(employee, supervisor, review_date, department, categories, rat
     doc.add_paragraph("3. ________________________________")
 
     doc.add_paragraph("\nSign-Offs", style='Heading 2')
-    doc.add_paragraph("Employee Signature: ________________    Date: ____________")
-    doc.add_paragraph("Supervisor Signature: ________________  Date: ____________")
+    doc.add_paragraph("Employee Signature: ________________________________    Date: ____________")
+    doc.add_paragraph("Supervisor Signature: ________________________________  Date: ____________")
 
     buffer = BytesIO()
     doc.save(buffer)
@@ -185,8 +185,6 @@ def update_formatted_sheet(email, employee_name, supervisor_name, review_date, d
     st.success("✅ Row correctly saved to Google Sheet.")
 
 
-
-
 # === SESSION INIT ===
 if 'responses' not in st.session_state:
     st.session_state.responses = [""] * len(prompts)
@@ -197,7 +195,18 @@ with st.form("coaching_form"):
     employee_name = st.text_input("Employee Name")
     supervisor_name = st.text_input("Supervisor Name")
     review_date = st.date_input("Date of Review", value=datetime.date.today())
-    department = st.selectbox("Department", ["Rough In", "Paint Line", "Commercial Fabrication", "Baseboard Accessories"])
+    department = st.selectbox("Department", [
+    "Rough In",
+    "Paint Line (NP)",
+    "Commercial Fabrication",
+    "Baseboard Accessories",
+    "Maintenance",
+    "Residential Fabrication",
+    "Residential Assembly/Packing",
+    "Warehouse (55WIPR)",
+    "Convector & Twin Flo",
+    "Shipping/Receiving/Drivers",
+
 
     for i, prompt in enumerate(prompts):
         st.session_state.responses[i] = st.text_area(prompt, value=st.session_state.responses[i])
