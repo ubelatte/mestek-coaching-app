@@ -195,7 +195,7 @@ with st.form("coaching_form"):
     employee_name = st.text_input("Employee Name")
     supervisor_name = st.text_input("Supervisor Name")
     review_date = st.date_input("Date of Review", value=datetime.date.today())
-    department = st.selectbox("Department", [
+department = st.selectbox("Department", [
     "Rough In",
     "Paint Line (NP)",
     "Commercial Fabrication",
@@ -206,6 +206,10 @@ with st.form("coaching_form"):
     "Warehouse (55WIPR)",
     "Convector & Twin Flo",
     "Shipping/Receiving/Drivers",
+    "Dadanco Fabrication/Assembly",
+    "Paint Line (Dadanco)"
+])
+
 
 
     for i, prompt in enumerate(prompts):
