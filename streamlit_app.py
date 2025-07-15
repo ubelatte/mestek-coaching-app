@@ -190,32 +190,33 @@ if 'responses' not in st.session_state:
     st.session_state.responses = [""] * len(prompts)
 
 # === MAIN FORM ===
+# === MAIN FORM ===
 with st.form("coaching_form"):
     email = st.text_input("Employee Email *")
     employee_name = st.text_input("Employee Name")
     supervisor_name = st.text_input("Supervisor Name")
     review_date = st.date_input("Date of Review", value=datetime.date.today())
-department = st.selectbox("Department", [
-    "Rough In",
-    "Paint Line (NP)",
-    "Commercial Fabrication",
-    "Baseboard Accessories",
-    "Maintenance",
-    "Residential Fabrication",
-    "Residential Assembly/Packing",
-    "Warehouse (55WIPR)",
-    "Convector & Twin Flo",
-    "Shipping/Receiving/Drivers",
-    "Dadanco Fabrication/Assembly",
-    "Paint Line (Dadanco)"
-])
 
-
+    department = st.selectbox("Department", [
+        "Rough In",
+        "Paint Line (NP)",
+        "Commercial Fabrication",
+        "Baseboard Accessories",
+        "Maintenance",
+        "Residential Fabrication",
+        "Residential Assembly/Packing",
+        "Warehouse (55WIPR)",
+        "Convector & Twin Flo",
+        "Shipping/Receiving/Drivers",
+        "Dadanco Fabrication/Assembly",
+        "Paint Line (Dadanco)"
+    ])
 
     for i, prompt in enumerate(prompts):
         st.session_state.responses[i] = st.text_area(prompt, value=st.session_state.responses[i])
 
     submit_button = st.form_submit_button("Submit")
+
 
     if submit_button:
         if not email or not all(st.session_state.responses):
