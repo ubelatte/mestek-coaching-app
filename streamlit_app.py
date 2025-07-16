@@ -250,5 +250,5 @@ with st.form("coaching_form"):
                        "Attached is your performance report from Mestek.",
                        report, f"{employee_name}_report.docx")
 
-            st.success("✅ Report emailed and saved successfully!")
+            st.success("✅ Report emailed and saved successfully! Make sure to check your junk/spam if it does not show up.")
             st.session_state.responses = [""] * len(prompts)
