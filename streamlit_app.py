@@ -32,7 +32,6 @@ if not st.session_state.authenticated:
 
 st.success("Access granted!")
 
-
 # === GOOGLE + OPENAI SETUP ===
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 service_account_info = st.secrets["gcp_service_account"]
@@ -146,9 +145,8 @@ def create_report(employee, supervisor, review_date, department,
     doc.add_paragraph(summary)
 
     doc.add_paragraph("\nGoals for Next Review Period", style='Heading 2')
-    doc.add_paragraph("1. _____________________________________________________________________________________________________________________________________________________________________________________________________")
-    doc.add_paragraph("2. _____________________________________________________________________________________________________________________________________________________________________________________________________")
-    doc.add_paragraph("3. _____________________________________________________________________________________________________________________________________________________________________________________________________")
+    for i in range(3):
+        doc.add_paragraph(f"{i+1}. _____________________________________________________________________________________________________________________________________________________________________________________________________")
 
     doc.add_paragraph("\nSign-Offs", style='Heading 2')
     doc.add_paragraph("Employee Signature: ________________________________    Date: ____________")
@@ -160,18 +158,17 @@ def create_report(employee, supervisor, review_date, department,
     return buffer
 
 # === SHEET LOGGING ===
-update_formatted_sheet(
-    employee_name=data["employee_name"],
-    supervisor_name=data["supervisor_name"],
-    review_date=data["review_date"],
-    appraisal_period=f"{data['appraisal_period_from']} to {data['appraisal_period_to']}",
-    department=data["department"],
-    responses=st.session_state.responses,
-    ratings=ratings,
-    ai_score=ai_score,
-    ai_summary=overall
-)
-
+def update_formatted_sheet(employee_name, supervisor_name, review_date, appraisal_period, department, responses, ratings, ai_score, ai_summary):
+    timestamp = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    row = [
+        timestamp, employee_name, supervisor_name, str(review_date), appraisal_period, department,
+        responses[0], ratings[0], responses[1], ratings[1],
+        responses[2], ratings[2], responses[3], ratings[3],
+        responses[4], ratings[4], responses[5], ratings[5],
+        ai_score, ai_summary, "✔️"
+    ]
+    sheet.append_row(row, value_input_option="USER_ENTERED")
+    st.success("✅ Saved to Google Sheet")
 
 # === FORM UI ===
 if 'responses' not in st.session_state:
@@ -228,6 +225,7 @@ if "generate_report" in st.session_state:
 
     update_formatted_sheet(
         data["employee_name"], data["supervisor_name"], data["review_date"],
+        f"{data['appraisal_period_from']} to {data['appraisal_period_to']}",
         data["department"], st.session_state.responses, ratings, ai_score, overall
     )
 
