@@ -131,9 +131,9 @@ def create_report(employee, supervisor, review_date, department,
     doc.add_paragraph(summary)
 
     doc.add_paragraph("\nGoals for Next Review Period", style='Heading 2')
-    doc.add_paragraph("1. ________________________________")
-    doc.add_paragraph("2. ________________________________")
-    doc.add_paragraph("3. ________________________________")
+    doc.add_paragraph("1. ________________________________________________________________________________________________________________________________________________________________________________________________")
+    doc.add_paragraph("2. ________________________________________________________________________________________________________________________________________________________________________________________________")
+    doc.add_paragraph("3. ________________________________________________________________________________________________________________________________________________________________________________________________")
 
     doc.add_paragraph("\nSign-Offs", style='Heading 2')
     doc.add_paragraph("Employee Signature: ________________________________    Date: ____________")
@@ -168,7 +168,6 @@ if 'responses' not in st.session_state:
 
 # === MAIN FORM ===
 with st.form("appraisal_form"):
-    email = st.text_input("Employee Email *")
     employee_name = st.text_input("Employee Name")
     supervisor_name = st.text_input("Supervisor Name")
     review_date = st.date_input("Date of Review", value=datetime.date.today())
