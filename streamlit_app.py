@@ -104,15 +104,22 @@ def create_report(employee, supervisor, review_date, department,
     doc = Document()
     doc.add_heading("MESTEK – Hourly Performance Appraisal", level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
-    doc.add_heading("Employee Information", level=2)
     info = doc.add_paragraph()
-    info.add_run(f"• Employee Name: {employee}\n")
-    info.add_run(f"• Department: {department}\n")
-    info.add_run(f"• Supervisor Name: {supervisor}\n")
-    info.add_run(f"• Date of Review: {review_date}\n")
-    info.add_run(f"• Date of Hire: {date_of_hire}\n")
-    info.add_run(f"• Review Type: {review_type}\n")
-    info.add_run(f"• Appraisal Period: {appraisal_from} to {appraisal_to}\n")
+    fields = [
+        ("Employee Name:", employee),
+        ("Department:", department),
+        ("Supervisor Name:", supervisor),
+        ("Date of Review:", review_date),
+        ("Date of Hire:", date_of_hire),
+        ("Review Type:", review_type),
+        ("Appraisal Period:", f"{appraisal_from} to {appraisal_to}")
+    ]
+
+for label, value in fields:
+    run_label = info.add_run(f"{label} ")
+    run_label.bold = True
+    info.add_run(f"{value}\n")
+
 
     doc.add_heading("Core Performance Categories", level=2)
     note = doc.add_paragraph()
