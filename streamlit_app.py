@@ -18,7 +18,7 @@ if st.text_input("Enter password", type="password") != PASSWORD:
     st.stop()
 st.success("Access granted!")
 
-# === SETUP GOOGLE + OPENAI ===
+# === GOOGLE + OPENAI SETUP ===
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 service_account_info = st.secrets["gcp_service_account"]
 creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
@@ -26,13 +26,13 @@ client = gspread.authorize(creds)
 
 try:
     sheet = client.open("Automated Supervisor Report").sheet1
-    st.success("✅ Successfully connected to Google Sheet")
+    st.success("✅ Connected to Google Sheet")
 except Exception as e:
-    st.error(f"❌ Sheet connection error: {e}")
+    st.error(f"❌ Sheet error: {e}")
 
 client_openai = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
-# === PERFORMANCE CATEGORIES & PROMPTS ===
+# === CATEGORIES & PROMPTS ===
 categories = [
     "Feedback & Conflict Resolution",
     "Communication & Team Support",
@@ -51,7 +51,7 @@ prompts = [
     "How effectively does this employee use technical documentation and operate equipment according to established procedures? Please describe how they access and apply information (e.g., blueprints, work orders), and how confidently they handle equipment and tools in their role."
 ]
 
-# === ANALYSIS FUNCTIONS ===
+# === AI FUNCTIONS ===
 def analyze_feedback(category, response):
     prompt = (
         f"You are an HR analyst. Rate the employee's response on '{category}' from 1 to 5. "
@@ -84,7 +84,7 @@ def summarize_overall_feedback(employee_name, feedbacks):
     except Exception as e:
         return f"(Summary unavailable: {e})"
 
-# === REPORT GENERATOR ===
+# === DOCX REPORT ===
 def create_report(employee, supervisor, review_date, department,
                   date_of_hire, review_type, appraisal_from, appraisal_to,
                   categories, ratings, comments, summary):
@@ -102,8 +102,8 @@ def create_report(employee, supervisor, review_date, department,
     info.add_run(f"• Appraisal Period: {appraisal_from} to {appraisal_to}\n")
 
     doc.add_heading("Core Performance Categories", level=2)
-    rating_note = doc.add_paragraph()
-    run = rating_note.add_run("1 – Poor | 2 – Needs Improvement | 3 – Meets Expectations | 4 – Exceeds Expectations | 5 – Outstanding")
+    note = doc.add_paragraph()
+    run = note.add_run("1 – Poor | 2 – Needs Improvement | 3 – Meets Expectations | 4 – Exceeds Expectations | 5 – Outstanding")
     run.font.size = Pt(9)
 
     table = doc.add_table(rows=1, cols=3)
@@ -144,10 +144,10 @@ def create_report(employee, supervisor, review_date, department,
     buffer.seek(0)
     return buffer
 
-# === SHEET LOGGER ===
+# === SHEET LOGGING ===
 def update_formatted_sheet(employee_name, supervisor_name, review_date, department, responses, ratings, ai_score, ai_summary):
     timestamp = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
-    formatted_row = [
+    row = [
         timestamp, employee_name, supervisor_name, str(review_date), department,
         responses[0], ratings[0],
         responses[1], ratings[1],
@@ -157,14 +157,13 @@ def update_formatted_sheet(employee_name, supervisor_name, review_date, departme
         responses[5], ratings[5],
         ai_score, ai_summary, "✔️"
     ]
-    sheet.append_row(formatted_row, value_input_option="USER_ENTERED")
-    st.success("✅ Row saved to Google Sheet.")
+    sheet.append_row(row, value_input_option="USER_ENTERED")
+    st.success("✅ Saved to Google Sheet")
 
-# === SESSION STATE INIT ===
+# === FORM UI ===
 if 'responses' not in st.session_state:
     st.session_state.responses = [""] * len(prompts)
 
-# === MAIN FORM ===
 with st.form("appraisal_form"):
     employee_name = st.text_input("Employee Name")
     supervisor_name = st.text_input("Supervisor Name")
@@ -185,44 +184,54 @@ with st.form("appraisal_form"):
     for i, prompt in enumerate(prompts):
         st.session_state.responses[i] = st.text_area(prompt, value=st.session_state.responses[i])
 
-    submit_button = st.form_submit_button("Submit")
+    submitted = st.form_submit_button("Submit")
 
-    if submit_button:
+    if submitted:
         if not employee_name or not supervisor_name or not all(st.session_state.responses):
             st.warning("Please complete all required fields.")
         else:
-            st.info("Analyzing with AI...")
-            feedbacks = [analyze_feedback(cat, resp) for cat, resp in zip(categories, st.session_state.responses)]
-            ratings = [f.splitlines()[0].split(":")[-1].split("/")[0].strip() for f in feedbacks]
-            summaries = [f.split("Summary:")[-1].strip() for f in feedbacks]
-            overall_summary = summarize_overall_feedback(employee_name, feedbacks)
+            st.session_state.generate_report = {
+                "employee_name": employee_name,
+                "supervisor_name": supervisor_name,
+                "review_date": review_date,
+                "date_of_hire": date_of_hire,
+                "review_type": review_type,
+                "appraisal_period_from": appraisal_period_from,
+                "appraisal_period_to": appraisal_period_to,
+                "department": department
+            }
 
-            ai_score_match = re.search(r"Overall performance score: (\d+(?:\.\d+)?)/5", overall_summary)
-            ai_score = ai_score_match.group(1) if ai_score_match else "N/A"
+# === REPORT GENERATION & DOWNLOAD BUTTON ===
+if "generate_report" in st.session_state:
+    st.info("Analyzing with AI...")
+    data = st.session_state.generate_report
+    feedbacks = [analyze_feedback(cat, resp) for cat, resp in zip(categories, st.session_state.responses)]
+    ratings = [f.splitlines()[0].split(":")[-1].split("/")[0].strip() for f in feedbacks]
+    summaries = [f.split("Summary:")[-1].strip() for f in feedbacks]
+    overall = summarize_overall_feedback(data["employee_name"], feedbacks)
 
-            update_formatted_sheet(
-                employee_name=employee_name,
-                supervisor_name=supervisor_name,
-                review_date=review_date,
-                department=department,
-                responses=st.session_state.responses,
-                ratings=ratings,
-                ai_score=ai_score,
-                ai_summary=overall_summary
-            )
+    match = re.search(r"Overall performance score: (\d+(?:\.\d+)?)/5", overall)
+    ai_score = match.group(1) if match else "N/A"
 
-            report = create_report(
-                employee_name, supervisor_name, str(review_date), department,
-                str(date_of_hire), review_type, str(appraisal_period_from), str(appraisal_period_to),
-                categories, ratings, summaries, overall_summary
-            )
+    update_formatted_sheet(
+        data["employee_name"], data["supervisor_name"], data["review_date"],
+        data["department"], st.session_state.responses, ratings, ai_score, overall
+    )
 
-            st.success("✅ Report generated successfully!")
-            st.download_button(
-                label="📄 Download Appraisal Report",
-                data=report,
-                file_name=f"{employee_name}_Performance_Appraisal.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
+    report = create_report(
+        data["employee_name"], data["supervisor_name"], str(data["review_date"]),
+        data["department"], str(data["date_of_hire"]), data["review_type"],
+        str(data["appraisal_period_from"]), str(data["appraisal_period_to"]),
+        categories, ratings, summaries, overall
+    )
 
-            st.session_state.responses = [""] * len(prompts)
+    st.success("✅ Report ready!")
+    st.download_button(
+        label="📄 Download Appraisal Report",
+        data=report,
+        file_name=f"{data['employee_name']}_Performance_Appraisal.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
+    del st.session_state.generate_report
+    st.session_state.responses = [""] * len(prompts)
