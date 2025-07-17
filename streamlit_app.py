@@ -160,20 +160,18 @@ def create_report(employee, supervisor, review_date, department,
     return buffer
 
 # === SHEET LOGGING ===
-def update_formatted_sheet(employee_name, supervisor_name, review_date, department, responses, ratings, ai_score, ai_summary):
-    timestamp = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
-    row = [
-        timestamp, employee_name, supervisor_name, str(review_date), department,
-        responses[0], ratings[0],
-        responses[1], ratings[1],
-        responses[2], ratings[2],
-        responses[3], ratings[3],
-        responses[4], ratings[4],
-        responses[5], ratings[5],
-        ai_score, ai_summary, "✔️"
-    ]
-    sheet.append_row(row, value_input_option="USER_ENTERED")
-    st.success("✅ Saved to Google Sheet")
+update_formatted_sheet(
+    employee_name=data["employee_name"],
+    supervisor_name=data["supervisor_name"],
+    review_date=data["review_date"],
+    appraisal_period=f"{data['appraisal_period_from']} to {data['appraisal_period_to']}",
+    department=data["department"],
+    responses=st.session_state.responses,
+    ratings=ratings,
+    ai_score=ai_score,
+    ai_summary=overall
+)
+
 
 # === FORM UI ===
 if 'responses' not in st.session_state:
