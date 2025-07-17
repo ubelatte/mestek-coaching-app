@@ -13,10 +13,25 @@ import re
 # === PASSWORD GATE ===
 st.title("🔐 Secure Access")
 PASSWORD = "WFHQmestek413"
-if st.text_input("Enter password", type="password") != PASSWORD:
-    st.warning("Please enter the correct password and press Enter.")
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    with st.form("password_form"):
+        input_password = st.text_input("Enter password", type="password")
+        unlock = st.form_submit_button("Unlock")
+
+    if unlock:
+        if input_password == PASSWORD:
+            st.session_state.authenticated = True
+            st.experimental_rerun()
+        else:
+            st.error("Incorrect password. Please try again.")
     st.stop()
+
 st.success("Access granted!")
+
 
 # === GOOGLE + OPENAI SETUP ===
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
