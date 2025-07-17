@@ -7,8 +7,6 @@ from docx.shared import Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
 from io import BytesIO
-import smtplib
-from email.message import EmailMessage
 import datetime
 import re
 
@@ -26,7 +24,6 @@ service_account_info = st.secrets["gcp_service_account"]
 creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
 client = gspread.authorize(creds)
 
-# ✅ Confirm connection to sheet
 try:
     sheet = client.open("Automated Supervisor Report").sheet1
     st.success("✅ Successfully connected to Google Sheet")
@@ -34,8 +31,6 @@ except Exception as e:
     st.error(f"❌ Sheet connection error: {e}")
 
 client_openai = OpenAI(api_key=st.secrets["openai"]["api_key"])
-SENDER_EMAIL = st.secrets["sender_email"]["sender_email"]
-SENDER_PASSWORD = st.secrets["sender_password"]["sender_password"]
 
 # === CATEGORIES & PROMPTS ===
 categories = [
@@ -90,7 +85,9 @@ def summarize_overall_feedback(employee_name, feedbacks):
         return f"(Summary unavailable: {e})"
 
 # === REPORT GENERATOR ===
-def create_report(employee, supervisor, review_date, department, categories, ratings, comments, summary):
+def create_report(employee, supervisor, review_date, department,
+                  date_of_hire, review_type, appraisal_from, appraisal_to,
+                  categories, ratings, comments, summary):
     doc = Document()
     doc.add_heading("MESTEK – Hourly Performance Appraisal", level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
@@ -100,12 +97,14 @@ def create_report(employee, supervisor, review_date, department, categories, rat
     info.add_run(f"• Department: {department}\n")
     info.add_run(f"• Supervisor Name: {supervisor}\n")
     info.add_run(f"• Date of Review: {review_date}\n")
+    info.add_run(f"• Date of Hire: {date_of_hire}\n")
+    info.add_run(f"• Review Type: {review_type}\n")
+    info.add_run(f"• Appraisal Period: {appraisal_from} to {appraisal_to}\n")
 
     doc.add_heading("Core Performance Categories", level=2)
     rating_note = doc.add_paragraph()
     run = rating_note.add_run("1 – Poor | 2 – Needs Improvement | 3 – Meets Expectations | 4 – Exceeds Expectations | 5 – Outstanding")
     run.font.size = Pt(9)
-    rating_note.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
 
     table = doc.add_table(rows=1, cols=3)
     table.style = 'Table Grid'
@@ -132,9 +131,9 @@ def create_report(employee, supervisor, review_date, department, categories, rat
     doc.add_paragraph(summary)
 
     doc.add_paragraph("\nGoals for Next Review Period", style='Heading 2')
-    doc.add_paragraph("1. ________________________________")
-    doc.add_paragraph("2. ________________________________")
-    doc.add_paragraph("3. ________________________________")
+    doc.add_paragraph("1. ________________________________________________________________________________________________________________________________________________________________________________________________")
+    doc.add_paragraph("2. ________________________________________________________________________________________________________________________________________________________________________________________________")
+    doc.add_paragraph("3. ________________________________________________________________________________________________________________________________________________________________________________________________")
 
     doc.add_paragraph("\nSign-Offs", style='Heading 2')
     doc.add_paragraph("Employee Signature: ________________________________    Date: ____________")
@@ -145,71 +144,45 @@ def create_report(employee, supervisor, review_date, department, categories, rat
     buffer.seek(0)
     return buffer
 
-# === EMAIL SENDER ===
-def send_email(to_address, subject, body, attachment, filename):
-    msg = EmailMessage()
-    msg["From"] = SENDER_EMAIL
-    msg["To"] = to_address
-    msg["Subject"] = subject
-    msg.set_content(body)
-    msg.add_attachment(attachment.read(), maintype="application", subtype="vnd.openxmlformats-officedocument.wordprocessingml.document", filename=filename)
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-        smtp.login(SENDER_EMAIL, SENDER_PASSWORD)
-        smtp.send_message(msg)
-
-# === GOOGLE FORM STRUCTURE WRITER ===
+# === SHEET LOGGER ===
 def update_formatted_sheet(email, employee_name, supervisor_name, review_date, department, responses, ratings, ai_score, ai_summary):
     timestamp = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
 
     formatted_row = [
-        timestamp,                # Timestamp
-        email,                   # Email Address
-        employee_name,           # Employee Name
-        supervisor_name,         # Supervisor Name
-        str(review_date),        # Date of Review
-        department,              # Department
-
-        responses[0], ratings[0],  # Q1 & Score
-        responses[1], ratings[1],  # Q2 & Score
-        responses[2], ratings[2],  # Q3 & Score
-        responses[3], ratings[3],  # Q4 & Score
-        responses[4], ratings[4],  # Q5 & Score
-        responses[5], ratings[5],  # Q6 & Score - Documentation & Procedures
-
-        ai_score,
-        ai_summary,
-        "✔️"
+        timestamp, email, employee_name, supervisor_name, str(review_date), department,
+        responses[0], ratings[0],
+        responses[1], ratings[1],
+        responses[2], ratings[2],
+        responses[3], ratings[3],
+        responses[4], ratings[4],
+        responses[5], ratings[5],
+        ai_score, ai_summary, "✔️"
     ]
 
     sheet.append_row(formatted_row, value_input_option="USER_ENTERED")
-    st.success("✅ Row correctly saved to Google Sheet.")
+    st.success("✅ Row saved to Google Sheet.")
 
-
-# === SESSION INIT ===
+# === SESSION STATE INIT ===
 if 'responses' not in st.session_state:
     st.session_state.responses = [""] * len(prompts)
 
 # === MAIN FORM ===
-# === MAIN FORM ===
-with st.form("coaching_form"):
+with st.form("appraisal_form"):
     email = st.text_input("Employee Email *")
     employee_name = st.text_input("Employee Name")
     supervisor_name = st.text_input("Supervisor Name")
     review_date = st.date_input("Date of Review", value=datetime.date.today())
+    date_of_hire = st.date_input("Employee Date of Hire")
+    review_type = st.selectbox("Appraisal Type", ["90-Day Appraisal", "Annual Appraisal"])
+    appraisal_period_from = st.date_input("Appraisal Period – From")
+    appraisal_period_to = st.date_input("Appraisal Period – To")
 
     department = st.selectbox("Department", [
-        "Rough In",
-        "Paint Line (NP)",
-        "Commercial Fabrication",
-        "Baseboard Accessories",
-        "Maintenance",
-        "Residential Fabrication",
-        "Residential Assembly/Packing",
-        "Warehouse (55WIPR)",
-        "Convector & Twin Flo",
-        "Shipping/Receiving/Drivers",
-        "Dadanco Fabrication/Assembly",
-        "Paint Line (Dadanco)"
+        "Rough In", "Paint Line (NP)", "Commercial Fabrication",
+        "Baseboard Accessories", "Maintenance", "Residential Fabrication",
+        "Residential Assembly/Packing", "Warehouse (55WIPR)",
+        "Convector & Twin Flo", "Shipping/Receiving/Drivers",
+        "Dadanco Fabrication/Assembly", "Paint Line (Dadanco)"
     ])
 
     for i, prompt in enumerate(prompts):
@@ -217,10 +190,9 @@ with st.form("coaching_form"):
 
     submit_button = st.form_submit_button("Submit")
 
-
     if submit_button:
         if not email or not all(st.session_state.responses):
-            st.warning("Please complete all fields.")
+            st.warning("Please complete all required fields.")
         else:
             st.info("Analyzing with AI...")
             feedbacks = [analyze_feedback(cat, resp) for cat, resp in zip(categories, st.session_state.responses)]
@@ -243,12 +215,18 @@ with st.form("coaching_form"):
                 ai_summary=overall_summary
             )
 
-            report = create_report(employee_name, supervisor_name, str(review_date), department,
-                                   categories, ratings, summaries, overall_summary)
+            report = create_report(
+                employee_name, supervisor_name, str(review_date), department,
+                str(date_of_hire), review_type, str(appraisal_period_from), str(appraisal_period_to),
+                categories, ratings, summaries, overall_summary
+            )
 
-            send_email(email, f"Coaching Report for {employee_name}",
-                       "Attached is your performance report from Mestek.",
-                       report, f"{employee_name}_report.docx")
+            st.success("✅ Report generated successfully!")
+            st.download_button(
+                label="📄 Download Performance Appraisal Report",
+                data=report,
+                file_name=f"{employee_name}_Performance_Appraisal.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
 
-            st.success("✅ Report emailed and saved successfully! Make sure to check your junk/spam if it does not show up.")
             st.session_state.responses = [""] * len(prompts)
