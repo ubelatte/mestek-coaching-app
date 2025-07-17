@@ -18,7 +18,7 @@ if st.text_input("Enter password", type="password") != PASSWORD:
     st.stop()
 st.success("Access granted!")
 
-# === SETUP ===
+# === SETUP GOOGLE + OPENAI ===
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 service_account_info = st.secrets["gcp_service_account"]
 creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
@@ -32,7 +32,7 @@ except Exception as e:
 
 client_openai = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
-# === CATEGORIES & PROMPTS ===
+# === PERFORMANCE CATEGORIES & PROMPTS ===
 categories = [
     "Feedback & Conflict Resolution",
     "Communication & Team Support",
@@ -51,7 +51,7 @@ prompts = [
     "How effectively does this employee use technical documentation and operate equipment according to established procedures? Please describe how they access and apply information (e.g., blueprints, work orders), and how confidently they handle equipment and tools in their role."
 ]
 
-# === AI ANALYSIS ===
+# === ANALYSIS FUNCTIONS ===
 def analyze_feedback(category, response):
     prompt = (
         f"You are an HR analyst. Rate the employee's response on '{category}' from 1 to 5. "
@@ -131,9 +131,9 @@ def create_report(employee, supervisor, review_date, department,
     doc.add_paragraph(summary)
 
     doc.add_paragraph("\nGoals for Next Review Period", style='Heading 2')
-    doc.add_paragraph("1. ________________________________________________________________________________________________________________________________________________________________________________________________")
-    doc.add_paragraph("2. ________________________________________________________________________________________________________________________________________________________________________________________________")
-    doc.add_paragraph("3. ________________________________________________________________________________________________________________________________________________________________________________________________")
+    doc.add_paragraph("1. ________________________________")
+    doc.add_paragraph("2. ________________________________")
+    doc.add_paragraph("3. ________________________________")
 
     doc.add_paragraph("\nSign-Offs", style='Heading 2')
     doc.add_paragraph("Employee Signature: ________________________________    Date: ____________")
@@ -145,11 +145,10 @@ def create_report(employee, supervisor, review_date, department,
     return buffer
 
 # === SHEET LOGGER ===
-def update_formatted_sheet(email, employee_name, supervisor_name, review_date, department, responses, ratings, ai_score, ai_summary):
+def update_formatted_sheet(employee_name, supervisor_name, review_date, department, responses, ratings, ai_score, ai_summary):
     timestamp = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
-
     formatted_row = [
-        timestamp, email, employee_name, supervisor_name, str(review_date), department,
+        timestamp, employee_name, supervisor_name, str(review_date), department,
         responses[0], ratings[0],
         responses[1], ratings[1],
         responses[2], ratings[2],
@@ -158,7 +157,6 @@ def update_formatted_sheet(email, employee_name, supervisor_name, review_date, d
         responses[5], ratings[5],
         ai_score, ai_summary, "✔️"
     ]
-
     sheet.append_row(formatted_row, value_input_option="USER_ENTERED")
     st.success("✅ Row saved to Google Sheet.")
 
@@ -190,7 +188,7 @@ with st.form("appraisal_form"):
     submit_button = st.form_submit_button("Submit")
 
     if submit_button:
-        if not email or not all(st.session_state.responses):
+        if not employee_name or not supervisor_name or not all(st.session_state.responses):
             st.warning("Please complete all required fields.")
         else:
             st.info("Analyzing with AI...")
@@ -203,7 +201,6 @@ with st.form("appraisal_form"):
             ai_score = ai_score_match.group(1) if ai_score_match else "N/A"
 
             update_formatted_sheet(
-                email=email,
                 employee_name=employee_name,
                 supervisor_name=supervisor_name,
                 review_date=review_date,
@@ -222,7 +219,7 @@ with st.form("appraisal_form"):
 
             st.success("✅ Report generated successfully!")
             st.download_button(
-                label="📄 Download Performance Appraisal Report",
+                label="📄 Download Appraisal Report",
                 data=report,
                 file_name=f"{employee_name}_Performance_Appraisal.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
