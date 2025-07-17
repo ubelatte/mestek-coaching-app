@@ -145,7 +145,9 @@ def create_report(employee, supervisor, review_date, department,
 
     doc.add_paragraph("\nGoals for Next Review Period", style='Heading 2')
     for i in range(1, 4):
-        doc.add_paragraph(f"{i}. _____________________________________________________________________________________________________________________________________________________________________________________________________")
+        line = f"{i}. " + "_" * 100 + "\n" + " " * 4 + "_" * 100
+        doc.add_paragraph(line)
+
 
     doc.add_paragraph("\nSign-Offs", style='Heading 2')
     doc.add_paragraph("Employee Signature: ________________________________    Date: ____________")
