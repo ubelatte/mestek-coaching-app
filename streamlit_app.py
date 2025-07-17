@@ -106,19 +106,13 @@ def create_report(employee, supervisor, review_date, department,
 
     doc.add_heading("Employee Information", level=2)
     info = doc.add_paragraph()
-    fields = [
-        ("Employee Name:", employee),
-        ("Department:", department),
-        ("Supervisor Name:", supervisor),
-        ("Date of Review:", review_date),
-        ("Date of Hire:", date_of_hire),
-        ("Review Type:", review_type),
-        ("Appraisal Period:", f"{appraisal_from} to {appraisal_to}")
-    ]
-    for label, value in fields:
-        run_label = info.add_run(f"{label} ")
-        run_label.bold = True
-        info.add_run(f"{value}\n")
+    info.add_run(f"• Employee Name: {employee}\n")
+    info.add_run(f"• Department: {department}\n")
+    info.add_run(f"• Supervisor Name: {supervisor}\n")
+    info.add_run(f"• Date of Review: {review_date}\n")
+    info.add_run(f"• Date of Hire: {date_of_hire}\n")
+    info.add_run(f"• Review Type: {review_type}\n")
+    info.add_run(f"• Appraisal Period: {appraisal_from} to {appraisal_to}\n")
 
     doc.add_heading("Core Performance Categories", level=2)
     note = doc.add_paragraph()
@@ -154,6 +148,7 @@ def create_report(employee, supervisor, review_date, department,
         line = f"{i}. " + "_" * 100 + "\n" + " " * 4 + "_" * 100
         doc.add_paragraph(line)
 
+
     doc.add_paragraph("\nSign-Offs", style='Heading 2')
     doc.add_paragraph("Employee Signature: ________________________________    Date: ____________")
     doc.add_paragraph("Supervisor Signature: ________________________________  Date: ____________")
@@ -162,3 +157,90 @@ def create_report(employee, supervisor, review_date, department,
     doc.save(buffer)
     buffer.seek(0)
     return buffer
+
+# === SHEET LOGGING ===
+def update_formatted_sheet(employee_name, supervisor_name, review_date, appraisal_period, department, responses, ratings, ai_score, ai_summary):
+    timestamp = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    row = [
+        timestamp, employee_name, supervisor_name, str(review_date),
+        appraisal_period, department,
+        responses[0], ratings[0], responses[1], ratings[1],
+        responses[2], ratings[2], responses[3], ratings[3],
+        responses[4], ratings[4], responses[5], ratings[5],
+        ai_score, ai_summary, "✔️"
+    ]
+    sheet.append_row(row, value_input_option="USER_ENTERED")
+    st.success("✅ Saved to Google Sheet")
+
+# === FORM UI ===
+if 'responses' not in st.session_state:
+    st.session_state.responses = [""] * len(prompts)
+
+with st.form("appraisal_form"):
+    employee_name = st.text_input("Employee Name")
+    supervisor_name = st.text_input("Supervisor Name")
+    review_date = st.date_input("Date of Review", value=datetime.date.today())
+    date_of_hire = st.date_input("Employee Date of Hire")
+    review_type = st.selectbox("Appraisal Type", ["90-Day Appraisal", "Annual Appraisal"])
+    appraisal_period_from = st.date_input("Appraisal Period – From")
+    appraisal_period_to = st.date_input("Appraisal Period – To")
+    department = st.selectbox("Department", [
+        "Rough In", "Paint Line (NP)", "Commercial Fabrication",
+        "Baseboard Accessories", "Maintenance", "Residential Fabrication",
+        "Residential Assembly/Packing", "Warehouse (55WIPR)",
+        "Convector & Twin Flo", "Shipping/Receiving/Drivers",
+        "Dadanco Fabrication/Assembly", "Paint Line (Dadanco)"
+    ])
+    for i, prompt in enumerate(prompts):
+        st.session_state.responses[i] = st.text_area(prompt, value=st.session_state.responses[i])
+    submitted = st.form_submit_button("Submit")
+
+    if submitted:
+        if not employee_name or not supervisor_name or not all(st.session_state.responses):
+            st.warning("Please complete all required fields.")
+        else:
+            st.session_state.generate_report = {
+                "employee_name": employee_name,
+                "supervisor_name": supervisor_name,
+                "review_date": review_date,
+                "date_of_hire": date_of_hire,
+                "review_type": review_type,
+                "appraisal_period_from": appraisal_period_from,
+                "appraisal_period_to": appraisal_period_to,
+                "department": department
+            }
+
+# === REPORT GENERATION ===
+if "generate_report" in st.session_state:
+    st.info("Analyzing with AI...")
+    data = st.session_state.generate_report
+    feedbacks = [analyze_feedback(cat, resp) for cat, resp in zip(categories, st.session_state.responses)]
+    ratings = [f.splitlines()[0].split(":")[-1].split("/")[0].strip() for f in feedbacks]
+    summaries = [f.split("Summary:")[-1].strip() for f in feedbacks]
+    overall = summarize_overall_feedback(data["employee_name"], feedbacks)
+    match = re.search(r"Overall performance score: (\d+(?:\.\d+)?)/5", overall)
+    ai_score = match.group(1) if match else "N/A"
+
+    update_formatted_sheet(
+        data["employee_name"], data["supervisor_name"], data["review_date"],
+        f"{data['appraisal_period_from']} to {data['appraisal_period_to']}",
+        data["department"], st.session_state.responses, ratings, ai_score, overall
+    )
+
+    report = create_report(
+        data["employee_name"], data["supervisor_name"], str(data["review_date"]),
+        data["department"], str(data["date_of_hire"]), data["review_type"],
+        str(data["appraisal_period_from"]), str(data["appraisal_period_to"]),
+        categories, ratings, summaries, overall
+    )
+
+    st.success("✅ Report ready!")
+    st.download_button(
+        label="📄 Download Appraisal Report",
+        data=report,
+        file_name=f"{data['employee_name']}_Performance_Appraisal.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
+    del st.session_state.generate_report
+    st.session_state.responses = [""] * len(prompts)
