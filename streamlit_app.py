@@ -12,7 +12,7 @@ import re
 
 # === PASSWORD GATE ===
 st.title("🔐 Secure Access")
-PASSWORD = "WFHQmestek413"
+PASSWORD = "mestek"
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
