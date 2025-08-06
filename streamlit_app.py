@@ -198,7 +198,14 @@ with st.form("appraisal_form"):
     ])
     for i, prompt in enumerate(prompts):
         st.session_state.responses[i] = st.text_area(prompt, value=st.session_state.responses[i])
+
+    save_clicked = st.form_submit_button("💾 Save Progress")
     submitted = st.form_submit_button("Submit")
+
+    if save_clicked:
+        st.success("✅ Progress saved! You can leave and come back.")
+        st.stop()
+
 
     if submitted:
         if not employee_name or not supervisor_name or not all(st.session_state.responses):
